@@ -123,8 +123,8 @@ export default {
 
 <style scoped>
 .card {
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: none;
   transition: transform 0.2s;
 }
 
@@ -137,14 +137,15 @@ export default {
 }
 
 .favorite-document-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
+  border: 1px solid #dededb;
+  border-radius: 8px;
   transition: all .25s ease;
 }
 
 .favorite-document-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 30px rgba(0,0,0,.08);
+  border-color: #171717;
+  box-shadow: 0 8px 18px rgba(0,0,0,.08);
 }
 
 .card-title {
@@ -152,7 +153,7 @@ export default {
 }
 
 .card-footer {
-  border-top: 1px solid #f1f1f1;
+  border-top: 1px solid #dededb;
 }
 
 .badge {

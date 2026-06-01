@@ -11,17 +11,61 @@ import Settings from "../pages/Settings.vue";
 import DocumentDetail from "../pages/DocumentDetail.vue";
 
 const routes = [
-  { path: "/", redirect: "/login" },
-  { path: "/login", name: "Login", component: Login },
-  { path: "/dashboard", name: "Dashboard", component: Dashboard },
-  { path: "/documents", name: "AllDocuments", component: AllDocuments },
-  { path: "/documents/:id", name: "DocumentDetail", component: DocumentDetail },
-  { path: "/favorites", name: "Favorites", component: Favorites },
-  { path: "/categories", name: "Categories", component: Categories },
-  { path: "/folders", name: "Folders", component: Folders },
-  { path: "/upload", name: "Upload", component: Upload },
-  { path: "/members", name: "Members", component: Members },
-  { path: "/settings", name: "Settings", component: Settings },
+  {
+    path: '/login',
+    name: 'Login',
+    component: Login
+  },
+  {
+    path: '/',
+    redirect: '/dashboard'
+  },
+  {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: Dashboard
+  },
+  {
+    path: '/documents',
+    name: 'AllDocuments',
+    component: AllDocuments
+  },
+  {
+    path: '/documents/:id',
+    name: 'DocumentDetail',
+    component: DocumentDetail
+  },
+  {
+    path: '/favorites',
+    name: 'Favorites',
+    component: Favorites
+  },
+  {
+    path: '/categories',
+    name: 'Categories',
+    component: Categories
+  },
+  {
+    path: '/folders',
+    name: 'Folders',
+    component: Folders
+  },
+  {
+    path: '/upload',
+    name: 'Upload',
+    component: Upload
+  },
+  {
+    path: '/members',
+    name: 'Members',
+    component: Members,
+    meta: { requiresAdmin: true }
+  },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: Settings
+  }
 ];
 
 const router = createRouter({
@@ -29,4 +73,27 @@ const router = createRouter({
   routes,
 });
 
-export default router;
+// Route guard
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('token')
+  const storedUser = localStorage.getItem('user')
+  let user = null
+
+  try {
+    user = JSON.parse(storedUser)
+  } catch {
+    user = null
+  }
+
+  if (!token && to.path !== '/login') {
+    next('/login')
+  } else if (token && to.path === '/login') {
+    next('/dashboard')
+  } else if (to.meta.requiresAdmin && user?.role !== 'admin') {
+    next('/dashboard')
+  } else {
+    next()
+  }
+})
+
+export default router

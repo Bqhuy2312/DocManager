@@ -19,7 +19,7 @@
       <router-link to="/upload" class="nav-link" active-class="active">
         <i class="fas fa-arrow-up me-2"></i>Tải lên
       </router-link>
-      <router-link to="/members" class="nav-link" active-class="active">
+      <router-link v-if="isAdmin" to="/members" class="nav-link" active-class="active">
         <i class="fas fa-users me-2"></i>Thành viên
       </router-link>
     </nav>
@@ -28,33 +28,44 @@
 
 <script>
 export default {
-  name: 'Sidebar'
+  name: 'Sidebar',
+  computed: {
+    isAdmin() {
+      try {
+        return JSON.parse(localStorage.getItem('user'))?.role === 'admin'
+      } catch {
+        return false
+      }
+    }
+  }
 }
 </script>
 
 <style scoped>
 .sidebar {
-  background-color: #f8f9fa;
-  border-right: 1px solid #dee2e6;
+  width: 220px;
+  background-color: #fff;
+  border-right: 1px solid #dededb;
   min-height: calc(100vh - 56px);
-  padding: 20px 0;
+  padding: 18px 10px;
 }
 
 .nav-link {
-  padding: 10px 20px;
-  color: #333;
+  margin-bottom: 3px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  color: #292929;
   text-decoration: none;
   display: block;
 }
 
 .nav-link:hover {
-  background-color: #e9ecef;
-  color: #0d6efd;
+  background-color: #f1f1ef;
+  color: #171717;
 }
 
 .nav-link.active {
-  background-color: #0d6efd;
+  background-color: #171717;
   color: white !important;
-  border-left: 4px solid #0d6efd;
 }
 </style>

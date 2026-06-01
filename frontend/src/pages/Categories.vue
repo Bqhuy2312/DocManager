@@ -200,15 +200,15 @@ export default {
 <style scoped>
 .category-card {
   cursor: pointer;
-  border-radius: 10px;
+  border: 1px solid #dededb;
+  border-radius: 8px;
   transition: all 0.3s ease;
-  border: 2px solid transparent;
 }
 
 .category-card:hover {
-  transform: translateY(-10px);
-  border-color: #0d6efd;
-  box-shadow: 0 5px 20px rgba(13, 110, 253, 0.2);
+  transform: translateY(-4px);
+  border-color: #171717;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
 }
 
 .category-icon {

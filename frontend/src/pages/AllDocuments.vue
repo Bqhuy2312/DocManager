@@ -207,14 +207,15 @@ export default {
 }
 
 .document-card {
-  border-radius: 12px;
+  border-radius: 8px;
   transition: all 0.3s ease;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #dededb;
 }
 
 .document-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  border-color: #171717;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
 }
 
 .card-title {
@@ -223,6 +224,6 @@ export default {
 }
 
 .card-footer {
-  border-top: 1px solid #eee;
+  border-top: 1px solid #dededb;
 }
 </style>

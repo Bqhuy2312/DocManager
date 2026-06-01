@@ -251,12 +251,12 @@ export default {
 
 <style scoped>
 .list-group-item.active {
-  background-color: #0d6efd;
-  border-color: #0d6efd;
+  background-color: #171717;
+  border-color: #171717;
 }
 
 .card {
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: none;
 }
 </style>
