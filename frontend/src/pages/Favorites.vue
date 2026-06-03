@@ -8,7 +8,14 @@
 
     <div class="row g-4">
       <div class="col-md-6 col-lg-4" v-for="doc in favorites" :key="doc.id">
-        <div class="card favorite-document-card h-100">
+        <div
+          class="card favorite-document-card h-100"
+          role="button"
+          tabindex="0"
+          @click="viewDocument(doc.id)"
+          @keydown.enter="viewDocument(doc.id)"
+          @keydown.space.prevent="viewDocument(doc.id)"
+        >
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-start mb-3">
               <div>
@@ -27,7 +34,7 @@
 
               <button
                 class="btn btn-link text-warning p-0"
-                @click="removeFavorite(doc.id)"
+                @click.stop="removeFavorite(doc.id)"
               >
                 <i class="fas fa-star fs-5"></i>
               </button>
@@ -39,7 +46,7 @@
 
             <div class="mb-3">
               <span
-                v-for="tag in doc.tags"
+                v-for="tag in doc.tags || []"
                 :key="tag"
                 class="badge rounded-pill bg-light text-dark border me-1"
               >
@@ -51,22 +58,16 @@
           <div
             class="card-footer bg-white d-flex justify-content-between align-items-center"
           >
-            <div class="small text-muted">
-              {{ formatDate(doc.updatedAt) }}
+            <div class="favorite-document-meta">
+              <span><i class="fas fa-clock me-1"></i>Thời gian: {{ formatDateTime(doc.updatedAt) }}</span>
+              <span><i class="fas fa-weight-hanging me-1"></i>Kích thước: {{ formatFileSize(doc.fileSize) }}</span>
+              <span><i class="fas fa-upload me-1"></i>Tải lên: {{ formatDate(doc.uploadedAt) }}</span>
             </div>
 
             <div>
               <button
-                class="btn btn-outline-primary btn-sm me-2"
-                @click="viewDocument(doc.id)"
-              >
-                <i class="fas fa-eye"></i>
-                Xem
-              </button>
-
-              <button
                 class="btn btn-outline-success btn-sm"
-                @click="downloadDocument(doc.id)"
+                @click.stop="downloadDocument(doc.id)"
               >
                 <i class="fas fa-download"></i>
                 Tải xuống
@@ -92,6 +93,9 @@ export default {
           category: "Quy trình",
           department: "Nhân sự",
           updatedAt: new Date("2026-05-30"),
+          uploadedAt: new Date("2026-05-18"),
+          fileSize: 2480000,
+          tags: ["HR", "Tuyen dung"],
         },
         {
           id: 3,
@@ -100,6 +104,9 @@ export default {
           category: "Chính sách",
           department: "Tài chính",
           updatedAt: new Date("2026-05-25"),
+          uploadedAt: new Date("2026-05-10"),
+          fileSize: 1560000,
+          tags: ["Chinh sach", "Noi bo"],
         },
       ],
     };
@@ -116,6 +123,21 @@ export default {
     },
     formatDate(date) {
       return new Date(date).toLocaleDateString("vi-VN");
+    },
+    formatDateTime(date) {
+      return new Date(date).toLocaleString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    },
+    formatFileSize(bytes) {
+      if (!bytes) return "0 Bytes";
+      const units = ["Bytes", "KB", "MB", "GB"];
+      const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+      return `${Math.round((bytes / Math.pow(1024, index)) * 100) / 100} ${units[index]}`;
     },
   },
 };
@@ -139,13 +161,23 @@ export default {
 .favorite-document-card {
   border: 1px solid #dededb;
   border-radius: 8px;
+  cursor: pointer;
   transition: all .25s ease;
 }
 
-.favorite-document-card:hover {
+.favorite-document-card:hover,
+.favorite-document-card:focus {
   transform: translateY(-4px);
   border-color: #171717;
   box-shadow: 0 8px 18px rgba(0,0,0,.08);
+  outline: 0;
+}
+
+.favorite-document-meta {
+  display: grid;
+  gap: 6px;
+  color: #707070;
+  font-size: 0.78rem;
 }
 
 .card-title {

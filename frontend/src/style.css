@@ -21,6 +21,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
+  font-size: 0.875rem;
   color: var(--dm-black);
   background: var(--dm-soft);
 }
@@ -39,13 +40,34 @@ h6 {
   font-weight: 650;
 }
 
+h1 {
+  font-size: 1.65rem;
+}
+
+h2 {
+  font-size: 1.4rem;
+}
+
+h3 {
+  font-size: 1.2rem;
+}
+
+h4,
+h5 {
+  font-size: 1rem;
+}
+
+h6 {
+  font-size: 0.9rem;
+}
+
 a {
   color: var(--dm-black);
 }
 
 .container-fluid.py-4,
 .container.py-4 {
-  padding: 2rem !important;
+  padding: 1.5rem !important;
 }
 
 .card,
@@ -64,6 +86,15 @@ a {
   background: #f8f8f7 !important;
 }
 
+.card-body {
+  padding: 0.9rem;
+}
+
+.card-header,
+.card-footer {
+  padding: 0.7rem 0.9rem;
+}
+
 .table {
   --bs-table-color: var(--dm-black);
   --bs-table-bg: var(--dm-white);
@@ -73,16 +104,17 @@ a {
 }
 
 .table > :not(caption) > * > * {
-  padding: 0.85rem;
+  padding: 0.65rem 0.75rem;
 }
 
 .form-control,
 .form-select {
-  min-height: 42px;
+  min-height: 36px;
   border-color: #cfcfcb;
   border-radius: 6px;
   background-color: var(--dm-white);
   color: var(--dm-black);
+  font-size: 0.875rem;
 }
 
 .form-control:focus,
@@ -99,7 +131,19 @@ a {
 
 .btn {
   border-radius: 6px;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.875rem;
   font-weight: 600;
+}
+
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.78rem;
+}
+
+.btn-lg {
+  padding: 0.55rem 0.9rem;
+  font-size: 0.95rem;
 }
 
 .btn-primary,
@@ -169,11 +213,13 @@ a {
 
 .badge {
   border-radius: 4px;
+  font-size: 0.72rem;
   font-weight: 600;
 }
 
 .alert {
   border-radius: 6px;
+  padding: 0.7rem 0.85rem;
 }
 
 .alert-danger {
@@ -214,6 +260,6 @@ a {
 @media (max-width: 768px) {
   .container-fluid.py-4,
   .container.py-4 {
-    padding: 1.25rem !important;
+    padding: 1rem !important;
   }
 }

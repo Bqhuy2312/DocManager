@@ -1,32 +1,40 @@
 <template>
   <div class="container-fluid py-4">
-    <h1 class="mb-4"><i class="fas fa-book"></i> Tất Cả Tài Liệu</h1>
-
-    <div v-if="error" class="alert alert-danger">{{ error }}</div>
-
-    <div class="row mb-4">
-      <div class="col-md-6">
-        <input v-model="searchQuery" type="text" class="form-control" placeholder="Tìm kiếm theo tên hoặc tag...">
+    <div class="page-heading">
+      <div>
+        <h1 class="mb-1"><i class="fas fa-clipboard-check me-2"></i>Phê Duyệt Tài Liệu</h1>
+        <p class="text-muted mb-0">Kiểm tra tài liệu đã phê duyệt và tài liệu đang chờ phê duyệt.</p>
       </div>
-      <div class="col-md-3">
-        <select v-model="selectedCategory" class="form-select">
-          <option value="">Tất cả danh mục</option>
-          <option v-for="category in categories" :key="category" :value="category">{{ category }}</option>
-        </select>
-      </div>
-      <div class="col-md-3">
-        <select v-model="sortBy" class="form-select">
-          <option value="recent">Gần đây</option>
-          <option value="name">Theo tên</option>
-        </select>
+      <div class="summary-box">
+        <strong>{{ documents.length }}</strong>
+        <span>{{ statusLabel(selectedStatus) }}</span>
       </div>
     </div>
 
+    <div v-if="error" class="alert alert-danger">{{ error }}</div>
+
+    <div class="approval-toolbar">
+      <button
+        v-for="status in statuses"
+        :key="status.value"
+        type="button"
+        class="btn btn-sm"
+        :class="selectedStatus === status.value ? 'btn-dark' : 'btn-outline-dark'"
+        @click="changeStatus(status.value)"
+      >
+        <i :class="status.icon" class="me-1"></i>{{ status.label }}
+      </button>
+    </div>
+
     <p v-if="loading" class="text-muted">Đang tải tài liệu...</p>
-    <p v-else-if="!filteredDocuments.length" class="text-muted">Chưa có tài liệu phù hợp.</p>
+    <div v-else-if="!documents.length" class="empty-state">
+      <i class="far fa-folder-open"></i>
+      <strong>Không có tài liệu</strong>
+      <span>Danh sách {{ statusLabel(selectedStatus).toLowerCase() }} hiện đang trống.</span>
+    </div>
 
     <div v-else class="row g-4">
-      <div v-for="document in filteredDocuments" :key="document.id" class="col-md-6 col-lg-4">
+      <div v-for="document in documents" :key="document.id" class="col-md-6 col-lg-4">
         <div
           class="card favorite-document-card h-100"
           role="button"
@@ -79,7 +87,16 @@
             </div>
 
             <div>
-              <button class="btn btn-outline-success btn-sm" @click.stop="downloadDocument(document)">
+              <div v-if="document.status === 'pending'" class="d-flex gap-2">
+                <button class="btn btn-outline-secondary btn-sm" @click.stop="setApproval(document, 'rejected')">
+                  <i class="fas fa-xmark me-1"></i>Từ chối
+                </button>
+                <button class="btn btn-success btn-sm" @click.stop="setApproval(document, 'approved')">
+                  <i class="fas fa-check me-1"></i>Phê duyệt
+                </button>
+              </div>
+
+              <button v-else class="btn btn-outline-success btn-sm" @click.stop="download(document)">
                 <i class="fas fa-download"></i>
                 Tải xuống
               </button>
@@ -92,42 +109,23 @@
 </template>
 
 <script>
-import { getDocuments } from "@/services/documentService";
+import { approveDocument, getDocuments } from "@/services/documentService";
 
 export default {
-  name: "AllDocuments",
+  name: "Approvals",
   data() {
     return {
       documents: [],
-      searchQuery: "",
-      selectedCategory: "",
-      sortBy: "recent",
+      selectedStatus: "pending",
       loading: false,
       error: "",
+      statuses: [
+        { value: "pending", label: "Chờ phê duyệt", icon: "fas fa-clock" },
+        { value: "approved", label: "Đã phê duyệt", icon: "fas fa-check-circle" },
+      ],
     };
   },
-  computed: {
-    categories() {
-      return [...new Set(this.documents.map((document) => document.category).filter(Boolean))];
-    },
-    filteredDocuments() {
-      const query = this.searchQuery.toLowerCase();
-      return [...this.documents]
-        .filter((document) => {
-          const matchesSearch =
-            document.title.toLowerCase().includes(query) ||
-            (document.tags || []).some((tag) => tag.toLowerCase().includes(query));
-          const matchesCategory = !this.selectedCategory || document.category === this.selectedCategory;
-          return matchesSearch && matchesCategory;
-        })
-        .sort((a, b) => {
-          if (this.sortBy === "name") return a.title.localeCompare(b.title);
-          return new Date(b.updated_at) - new Date(a.updated_at);
-        });
-    },
-  },
   async mounted() {
-    this.searchQuery = this.$route.query.search || "";
     await this.loadDocuments();
   },
   methods: {
@@ -135,18 +133,30 @@ export default {
       this.loading = true;
       this.error = "";
       try {
-        this.documents = await getDocuments();
+        this.documents = await getDocuments({ status: this.selectedStatus });
       } catch (error) {
-        this.error = error.response?.data?.message || "Không thể tải danh sách tài liệu.";
+        this.error = error.response?.data?.message || "Không thể tải danh sách phê duyệt.";
       } finally {
         this.loading = false;
       }
     },
+    async changeStatus(status) {
+      this.selectedStatus = status;
+      await this.loadDocuments();
+    },
     viewDocument(id) {
       this.$router.push(`/documents/${id}`);
     },
-    downloadDocument(document) {
+    download(document) {
       window.open(document.file_path, "_blank");
+    },
+    async setApproval(document, status) {
+      try {
+        await approveDocument(document.id, status);
+        await this.loadDocuments();
+      } catch (error) {
+        this.error = error.response?.data?.message || "Không thể cập nhật trạng thái.";
+      }
     },
     formatDate(date) {
       return new Date(date).toLocaleDateString("vi-VN");
@@ -179,6 +189,39 @@ export default {
 </script>
 
 <style scoped>
+.page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.summary-box {
+  display: grid;
+  min-width: 120px;
+  padding: 10px 14px;
+  border: 1px solid #dededb;
+  border-radius: 7px;
+  background: #fff;
+  text-align: right;
+}
+
+.summary-box strong {
+  font-size: 1.25rem;
+}
+
+.summary-box span {
+  color: #707070;
+  font-size: 0.72rem;
+}
+
+.approval-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
 .card {
   border-radius: 8px;
   box-shadow: none;
@@ -222,5 +265,22 @@ export default {
 
 .badge {
   font-weight: 500;
+}
+
+.empty-state {
+  display: grid;
+  min-height: 300px;
+  place-content: center;
+  justify-items: center;
+  gap: 6px;
+  border: 1px solid #dededb;
+  border-radius: 8px;
+  background: #fff;
+  color: #707070;
+}
+
+.empty-state i {
+  margin-bottom: 4px;
+  font-size: 2rem;
 }
 </style>

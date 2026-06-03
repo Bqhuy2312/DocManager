@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUuid;
 use Illuminate\Database\Eloquent\Model;
 
 class Document extends Model
 {
+    use HasUuid;
+
     protected $keyType = 'string';
 
     public $incrementing = false;
@@ -13,7 +16,6 @@ class Document extends Model
     protected $table = 'documents';
 
     protected $fillable = [
-        'category_id',
         'folder_id',
         'created_by',
         'approved_by',
@@ -21,16 +23,16 @@ class Document extends Model
         'description',
         'file_name',
         'file_path',
+        'cloudinary_public_id',
         'file_size',
         'mime_type',
         'version',
         'status'
     ];
 
-    public function category()
-    {
-        return $this->belongsTo(Category::class);
-    }
+    protected $casts = [
+        'file_size' => 'integer',
+    ];
 
     public function folder()
     {

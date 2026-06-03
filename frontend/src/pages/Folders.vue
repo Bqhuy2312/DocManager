@@ -1,210 +1,338 @@
 <template>
   <div class="container-fluid py-4">
-    <h1 class="mb-4"><i class="fas fa-folder"></i> Thư Mục</h1>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h1 class="mb-1"><i class="fas fa-folder-tree me-2"></i>Quản Lý Thư Mục</h1>
+        <p class="text-muted mb-0">Duyệt tài liệu theo cấu trúc cây thư mục.</p>
+      </div>
+      <button v-if="canManage" class="btn btn-primary" @click="openCreateModal">
+        <i class="fas fa-plus me-1"></i>Thư mục mới
+      </button>
+    </div>
 
-    <button class="btn btn-primary mb-3" @click="showCreateFolderModal = true"><i class="fas fa-plus"></i> Tạo thư mục mới</button>
+    <div v-if="error" class="alert alert-danger">{{ error }}</div>
+    <p v-if="loading" class="text-muted">Đang tải cây thư mục...</p>
 
-    <!-- Modal tạo thư mục -->
-    <div v-if="showCreateFolderModal" class="modal d-block" style="background-color: rgba(0,0,0,0.5);">
+    <div v-else class="folder-layout">
+      <aside class="tree-panel">
+        <div class="tree-panel-header">
+          <strong>Cây thư mục</strong>
+          <button class="btn btn-sm btn-link text-dark p-0" type="button" @click="expandAll">
+            Mở tất cả
+          </button>
+        </div>
+        <div class="tree-panel-body">
+          <FolderTreeNode
+            v-for="folder in folders"
+            :key="folder.id"
+            :folder="folder"
+            :selected-id="selectedFolder?.id"
+            :expanded-ids="expandedIds"
+            :can-manage="canManage"
+            @select="selectFolder"
+            @toggle="toggleFolder"
+            @remove="removeFolder"
+          />
+        </div>
+      </aside>
+
+      <section class="content-panel">
+        <div class="content-header">
+          <div>
+            <div class="breadcrumb-line">
+              <i class="fas fa-home me-1"></i>
+              <span v-for="(item, index) in breadcrumbs" :key="item.id">
+                <i v-if="index" class="fas fa-chevron-right mx-2"></i>{{ item.name }}
+              </span>
+            </div>
+            <h3 class="mt-2 mb-0">{{ selectedFolder?.name || "Chọn một thư mục" }}</h3>
+          </div>
+          <button v-if="canManage && selectedFolder" class="btn btn-outline-primary btn-sm" @click="openCreateModal">
+            <i class="fas fa-folder-plus me-1"></i>Tạo thư mục con
+          </button>
+        </div>
+
+        <div v-if="!selectedFolder" class="empty-state">
+          <i class="fas fa-folder-open"></i>
+          <p>Chọn một thư mục trong cây để xem nội dung.</p>
+        </div>
+
+        <template v-else>
+          <div v-if="selectedFolder.descendants?.length" class="subfolder-grid">
+            <button
+              v-for="child in selectedFolder.descendants"
+              :key="child.id"
+              class="subfolder-card"
+              type="button"
+              @click="selectFolder(child)"
+            >
+              <i class="fas fa-folder"></i>
+              <span>{{ child.name }}</span>
+            </button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr><th>Tài liệu</th><th>Danh mục</th><th>Cập nhật</th><th>Thao tác</th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="document in visibleDocuments" :key="document.id">
+                  <td><i class="fas fa-file me-2"></i>{{ document.title }}</td>
+                  <td>{{ document.category }}</td>
+                  <td>{{ formatDate(document.updated_at) }}</td>
+                  <td>
+                    <button class="btn btn-sm btn-primary" @click="$router.push(`/documents/${document.id}`)">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary ms-1" @click="download(document)">
+                      <i class="fas fa-download"></i>
+                    </button>
+                  </td>
+                </tr>
+                <tr v-if="!visibleDocuments.length">
+                  <td colspan="4" class="text-muted">Chưa có tài liệu trong thư mục này.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </template>
+      </section>
+    </div>
+
+    <div v-if="showCreateModal" class="modal d-block modal-backdrop-custom">
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">Tạo thư mục mới</h5>
-            <button type="button" class="btn-close" @click="showCreateFolderModal = false"></button>
+            <button type="button" class="btn-close" @click="showCreateModal = false"></button>
           </div>
           <div class="modal-body">
-            <div class="mb-3">
-              <label class="form-label">Tên thư mục</label>
-              <input type="text" class="form-control" v-model="newFolderName" placeholder="Nhập tên thư mục">
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Phòng ban</label>
-              <select class="form-select" v-model="newFolderDepartment">
-                <option value="">-- Chọn phòng ban --</option>
-                <option value="HR">Nhân sự</option>
-                <option value="IT">CNTT</option>
-                <option value="Finance">Tài chính</option>
-                <option value="Ops">Vận hành</option>
-                <option value="Marketing">Marketing</option>
-                <option value="Legal">Pháp chế</option>
-              </select>
-            </div>
+            <label class="form-label">Tên thư mục</label>
+            <input v-model="newFolder.name" class="form-control mb-3">
+            <label class="form-label">Thư mục cha</label>
+            <select v-model="newFolder.parentId" class="form-select">
+              <option value="">Không có - tạo thư mục gốc</option>
+              <option v-for="folder in flatFolders" :key="folder.id" :value="folder.id">
+                {{ folder.label }}
+              </option>
+            </select>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="showCreateFolderModal = false">Hủy</button>
-            <button type="button" class="btn btn-primary" @click="createFolder">Tạo</button>
+            <button class="btn btn-secondary" @click="showCreateModal = false">Hủy</button>
+            <button class="btn btn-primary" @click="submitFolder">Tạo</button>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- Danh sách thư mục -->
-    <div class="row">
-      <div class="col-md-3" v-for="folder in folders" :key="folder.id">
-        <div class="card folder-card" @click="expandFolder(folder.id)">
-          <div class="card-body text-center">
-            <h3><i class="fas fa-folder"></i></h3>
-            <h6 class="card-title">{{ folder.name }}</h6>
-            <small class="text-muted">{{ folder.department }}</small>
-            <div class="mt-2 small text-muted">{{ folder.documentCount }} tài liệu</div>
-          </div>
-          <div class="card-footer bg-light">
-            <button class="btn btn-sm btn-danger" @click="deleteFolder(folder.id)"><i class="fas fa-trash"></i></button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Chi tiết thư mục -->
-    <div v-if="selectedFolder" class="mt-5">
-      <h3><i class="fas fa-list"></i> {{ selectedFolder.name }}</h3>
-      <div class="table-responsive">
-        <table class="table table-hover">
-          <thead class="table-light">
-            <tr>
-              <th><i class="fas fa-file"></i> Tài liệu</th>
-              <th><i class="fas fa-calendar"></i> Cập nhật</th>
-              <th><i class="fas fa-cog"></i> Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="doc in selectedFolder.documents" :key="doc.id">
-              <td>{{ doc.name }}</td>
-              <td>{{ formatDate(doc.updatedAt) }}</td>
-              <td>
-                <button class="btn btn-sm btn-primary" @click="viewDocument(doc.id)"><i class="fas fa-eye"></i></button>
-                <button class="btn btn-sm btn-success" @click="downloadDocument(doc.id)"><i class="fas fa-download"></i></button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+import FolderTreeNode from "@/components/FolderTreeNode.vue";
+import { createFolder, deleteFolder, getDocuments, getFolders } from "@/services/documentService";
+
 export default {
-  name: 'Folders',
+  name: "Folders",
+  components: { FolderTreeNode },
   data() {
     return {
-      showCreateFolderModal: false,
-      newFolderName: '',
-      newFolderDepartment: '',
+      folders: [],
+      documents: [],
       selectedFolder: null,
-      folders: [
-        {
-          id: 1,
-          name: 'Nhân sự',
-          department: 'HR',
-          documentCount: 25,
-          documents: [
-            { id: 101, name: 'Quy trình tuyển dụng', updatedAt: new Date('2026-05-30') },
-            { id: 102, name: 'Hướng dẫn HRM', updatedAt: new Date('2026-05-28') }
-          ]
-        },
-        {
-          id: 2,
-          name: 'CNTT',
-          department: 'IT',
-          documentCount: 18,
-          documents: [
-            { id: 201, name: 'Chính sách bảo mật', updatedAt: new Date('2026-05-25') }
-          ]
-        },
-        {
-          id: 3,
-          name: 'Tài chính',
-          department: 'Finance',
-          documentCount: 12,
-          documents: [
-            { id: 301, name: 'Quy trình thanh toán', updatedAt: new Date('2026-05-20') }
-          ]
-        },
-        {
-          id: 4,
-          name: 'Vận hành',
-          department: 'Ops',
-          documentCount: 20,
-          documents: [
-            { id: 401, name: 'Quy trình mua hàng', updatedAt: new Date('2026-05-15') }
-          ]
-        },
-        {
-          id: 5,
-          name: 'Marketing',
-          department: 'Marketing',
-          documentCount: 15,
-          documents: [
-            { id: 501, name: 'Chiến lược marketing', updatedAt: new Date('2026-05-10') }
-          ]
-        },
-        {
-          id: 6,
-          name: 'Pháp chế',
-          department: 'Legal',
-          documentCount: 8,
-          documents: [
-            { id: 601, name: 'Các quy định pháp lý', updatedAt: new Date('2026-05-05') }
-          ]
-        }
-      ]
-    }
+      expandedIds: [],
+      showCreateModal: false,
+      newFolder: { name: "", parentId: "" },
+      loading: false,
+      error: "",
+    };
+  },
+  computed: {
+    canManage() {
+      try {
+        return ["admin", "editor"].includes(JSON.parse(localStorage.getItem("user"))?.role);
+      } catch {
+        return false;
+      }
+    },
+    flatFolders() {
+      return this.flattenFolders(this.folders);
+    },
+    breadcrumbs() {
+      if (!this.selectedFolder) return [];
+      const path = [];
+      let current = this.selectedFolder;
+      while (current) {
+        path.unshift(current);
+        current = this.findFolder(current.parent_id);
+      }
+      return path;
+    },
+    visibleDocuments() {
+      if (!this.selectedFolder) return [];
+      return this.documents.filter((document) => document.folder_id === this.selectedFolder.id);
+    },
+  },
+  async mounted() {
+    await this.loadData();
+    this.expandAll();
   },
   methods: {
-    expandFolder(id) {
-      const folder = this.folders.find(f => f.id === id)
-      this.selectedFolder = this.selectedFolder?.id === id ? null : folder
-    },
-    createFolder() {
-      if (this.newFolderName && this.newFolderDepartment) {
-        const newFolder = {
-          id: Math.max(...this.folders.map(f => f.id), 0) + 1,
-          name: this.newFolderName,
-          department: this.newFolderDepartment,
-          documentCount: 0,
-          documents: []
-        }
-        this.folders.push(newFolder)
-        this.newFolderName = ''
-        this.newFolderDepartment = ''
-        this.showCreateFolderModal = false
+    async loadData() {
+      this.loading = true;
+      this.error = "";
+      try {
+        [this.folders, this.documents] = await Promise.all([getFolders(), getDocuments()]);
+        if (this.selectedFolder) this.selectedFolder = this.findFolder(this.selectedFolder.id);
+      } catch (error) {
+        this.error = error.response?.data?.message || "Không thể tải cây thư mục.";
+      } finally {
+        this.loading = false;
       }
     },
-    deleteFolder(id) {
-      if (confirm('Bạn chắc chắn muốn xóa thư mục này?')) {
-        this.folders = this.folders.filter(f => f.id !== id)
-        if (this.selectedFolder?.id === id) this.selectedFolder = null
+    flattenFolders(folders, depth = 0) {
+      return folders.flatMap((folder) => [
+        { ...folder, label: `${"— ".repeat(depth)}${folder.name}` },
+        ...this.flattenFolders(folder.descendants || [], depth + 1),
+      ]);
+    },
+    findFolder(id) {
+      return this.flatFolders.find((folder) => folder.id === id) || null;
+    },
+    selectFolder(folder) {
+      this.selectedFolder = folder;
+      if (!this.expandedIds.includes(folder.id)) this.expandedIds.push(folder.id);
+    },
+    toggleFolder(id) {
+      this.expandedIds = this.expandedIds.includes(id)
+        ? this.expandedIds.filter((folderId) => folderId !== id)
+        : [...this.expandedIds, id];
+    },
+    expandAll() {
+      this.expandedIds = this.flatFolders.map((folder) => folder.id);
+    },
+    openCreateModal() {
+      this.newFolder = { name: "", parentId: this.selectedFolder?.id || "" };
+      this.showCreateModal = true;
+    },
+    async submitFolder() {
+      if (!this.newFolder.name.trim()) return;
+      try {
+        await createFolder({ name: this.newFolder.name, parent_id: this.newFolder.parentId || null });
+        this.showCreateModal = false;
+        await this.loadData();
+        this.expandAll();
+      } catch (error) {
+        this.error = error.response?.data?.message || "Không thể tạo thư mục.";
       }
     },
-    viewDocument(id) {
-      this.$router.push(`/documents/${id}`)
+    async removeFolder(folder) {
+      if (!confirm(`Xóa thư mục "${folder.name}"?`)) return;
+      try {
+        await deleteFolder(folder.id);
+        if (this.selectedFolder?.id === folder.id) this.selectedFolder = null;
+        await this.loadData();
+      } catch (error) {
+        this.error = error.response?.data?.message || "Không thể xóa thư mục.";
+      }
     },
-    downloadDocument(id) {
-      alert(`Tải xuống tài liệu ${id}`)
+    download(document) {
+      window.open(document.file_path, "_blank");
     },
     formatDate(date) {
-      return new Date(date).toLocaleDateString('vi-VN')
-    }
-  }
-}
+      return new Date(date).toLocaleDateString("vi-VN");
+    },
+  },
+};
 </script>
 
 <style scoped>
-.folder-card {
-  cursor: pointer;
+.folder-layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  min-height: 560px;
+  overflow: hidden;
   border: 1px solid #dededb;
   border-radius: 8px;
-  transition: all 0.3s ease;
+  background: #fff;
 }
 
-.folder-card:hover {
-  transform: translateY(-4px);
+.tree-panel {
+  border-right: 1px solid #dededb;
+  background: #fbfbfa;
+}
+
+.tree-panel-header,
+.content-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid #dededb;
+}
+
+.tree-panel-body {
+  padding: 10px 8px;
+}
+
+.content-panel {
+  min-width: 0;
+}
+
+.breadcrumb-line {
+  color: #707070;
+  font-size: 0.78rem;
+}
+
+.subfolder-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px;
+  border-bottom: 1px solid #dededb;
+}
+
+.subfolder-card {
+  display: flex;
+  min-width: 150px;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid #dededb;
+  border-radius: 6px;
+  background: #fff;
+  color: #292929;
+}
+
+.subfolder-card:hover {
   border-color: #171717;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
 }
 
-.modal.d-block {
-  display: block;
+.empty-state {
+  display: grid;
+  min-height: 360px;
+  place-content: center;
+  justify-items: center;
+  color: #707070;
+}
+
+.empty-state i {
+  margin-bottom: 12px;
+  font-size: 2rem;
+}
+
+.modal-backdrop-custom {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+@media (max-width: 900px) {
+  .folder-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .tree-panel {
+    border-right: 0;
+    border-bottom: 1px solid #dededb;
+  }
 }
 </style>

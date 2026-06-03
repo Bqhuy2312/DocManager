@@ -20,11 +20,13 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
-        'avatar'
+        'avatar',
+        'avatar_public_id'
     ];
 
     protected $hidden = [
-        'password'
+        'password',
+        'avatar_public_id'
     ];
 
     public function department()

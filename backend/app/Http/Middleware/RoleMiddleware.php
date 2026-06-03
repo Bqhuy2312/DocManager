@@ -15,7 +15,7 @@ class RoleMiddleware
      */
     public function handle($request, Closure $next, ...$roles)
     {
-        if (!in_array($request->user()->role, $roles)) {
+        if (!$request->user() || !in_array($request->user()->role, $roles, true)) {
 
             return response()->json([
                 'message' => 'Không có quyền truy cập'

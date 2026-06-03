@@ -16,8 +16,11 @@
       <router-link to="/folders" class="nav-link" active-class="active">
         <i class="fas fa-folder me-2"></i>Thư mục
       </router-link>
-      <router-link to="/upload" class="nav-link" active-class="active">
+      <router-link v-if="canUpload" to="/upload" class="nav-link" active-class="active">
         <i class="fas fa-arrow-up me-2"></i>Tải lên
+      </router-link>
+      <router-link v-if="isAdmin" to="/approvals" class="nav-link" active-class="active">
+        <i class="fas fa-clipboard-check me-2"></i>Phê duyệt
       </router-link>
       <router-link v-if="isAdmin" to="/members" class="nav-link" active-class="active">
         <i class="fas fa-users me-2"></i>Thành viên
@@ -30,11 +33,17 @@
 export default {
   name: 'Sidebar',
   computed: {
+    canUpload() {
+      return ['admin', 'editor'].includes(this.currentUser?.role)
+    },
     isAdmin() {
+      return this.currentUser?.role === 'admin'
+    },
+    currentUser() {
       try {
-        return JSON.parse(localStorage.getItem('user'))?.role === 'admin'
+        return JSON.parse(localStorage.getItem('user'))
       } catch {
-        return false
+        return null
       }
     }
   }
@@ -43,20 +52,34 @@ export default {
 
 <style scoped>
 .sidebar {
-  width: 220px;
+  width: 200px;
   background-color: #fff;
   border-right: 1px solid #dededb;
   min-height: calc(100vh - 56px);
-  padding: 18px 10px;
+  padding: 16px 10px;
+}
+
+.nav {
+  display: grid;
+  grid-auto-rows: minmax(42px, 1fr);
+  gap: 6px;
+  height: min(60vh, 420px);
 }
 
 .nav-link {
-  margin-bottom: 3px;
-  padding: 10px 12px;
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  padding: 8px 12px;
   border-radius: 6px;
   color: #292929;
   text-decoration: none;
-  display: block;
+}
+
+.nav-link i {
+  width: 18px;
+  margin-right: 10px !important;
+  text-align: center;
 }
 
 .nav-link:hover {

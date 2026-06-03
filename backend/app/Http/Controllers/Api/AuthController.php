@@ -6,9 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use App\Services\CloudinaryService;
+use RuntimeException;
 
 class AuthController extends Controller
 {
+    public function __construct(private readonly CloudinaryService $cloudinary)
+    {
+    }
+
     public function login(Request $request)
     {
         $request->validate([
@@ -52,5 +58,34 @@ class AuthController extends Controller
         return response()->json(
             $request->user()
         );
+    }
+
+    public function uploadAvatar(Request $request)
+    {
+        $request->validate([
+            'avatar' => ['required', 'image', 'max:5120'],
+        ]);
+
+        try {
+            $upload = $this->cloudinary->uploadAvatar($request->file('avatar'));
+        } catch (RuntimeException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 503);
+        }
+
+        $user = $request->user();
+        $oldPublicId = $user->avatar_public_id;
+
+        $user->update([
+            'avatar' => $upload['url'],
+            'avatar_public_id' => $upload['public_id'],
+        ]);
+
+        try {
+            $this->cloudinary->destroyAvatar($oldPublicId);
+        } catch (RuntimeException) {
+            // The new avatar is already stored; stale cleanup can be retried later.
+        }
+
+        return response()->json($user->fresh());
     }
 }

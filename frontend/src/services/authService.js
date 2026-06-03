@@ -15,3 +15,10 @@ export const getCurrentUser = async () => {
   const response = await api.get('/me')
   return response.data
 }
+
+export const uploadAvatar = async (avatar) => {
+  const formData = new FormData()
+  formData.append('avatar', avatar)
+  const response = await api.post('/me/avatar', formData)
+  return response.data
+}

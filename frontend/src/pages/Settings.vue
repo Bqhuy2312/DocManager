@@ -35,6 +35,18 @@
             <h5 class="mb-0"><i class="fas fa-user"></i> Thông Tin Hồ Sơ</h5>
           </div>
           <div class="card-body">
+            <div class="d-flex align-items-center gap-3 mb-4">
+              <div class="profile-avatar">
+                <img v-if="currentUser?.avatar" :src="currentUser.avatar" alt="Avatar">
+                <i v-else class="fas fa-user"></i>
+              </div>
+              <div>
+                <label class="form-label"><strong>Ảnh đại diện</strong></label>
+                <input type="file" class="form-control" accept="image/*" :disabled="avatarUploading" @change="changeAvatar">
+                <small class="text-muted">Ảnh được lưu riêng trong thư mục Cloudinary avatars.</small>
+              </div>
+            </div>
+            <div v-if="avatarError" class="alert alert-danger">{{ avatarError }}</div>
             <form @submit.prevent="saveProfile">
               <div class="row mb-3">
                 <div class="col-md-6">
@@ -192,11 +204,16 @@
 </template>
 
 <script>
+import { uploadAvatar } from "@/services/authService";
+
 export default {
   name: 'Settings',
   data() {
     return {
       activeTab: 'profile',
+      currentUser: this.getStoredUser(),
+      avatarUploading: false,
+      avatarError: '',
       profile: {
         fullName: 'Nguyễn Văn A',
         email: 'admin@demo.com',
@@ -228,6 +245,30 @@ export default {
     }
   },
   methods: {
+    getStoredUser() {
+      try {
+        return JSON.parse(localStorage.getItem('user'))
+      } catch {
+        return null
+      }
+    },
+    async changeAvatar(event) {
+      const file = event.target.files[0]
+      if (!file) return
+
+      this.avatarUploading = true
+      this.avatarError = ''
+      try {
+        this.currentUser = await uploadAvatar(file)
+        localStorage.setItem('user', JSON.stringify(this.currentUser))
+        window.dispatchEvent(new Event('user-updated'))
+      } catch (error) {
+        this.avatarError = error.response?.data?.message || 'Không thể tải ảnh đại diện.'
+      } finally {
+        this.avatarUploading = false
+        event.target.value = ''
+      }
+    },
     saveProfile() {
       alert('<i class="fas fa-check"></i> Đã lưu thông tin hồ sơ')
     },
@@ -258,5 +299,25 @@ export default {
 .card {
   border-radius: 8px;
   box-shadow: none;
+}
+
+.profile-avatar {
+  display: flex;
+  width: 60px;
+  height: 60px;
+  flex: 0 0 60px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #171717;
+  color: #fff;
+  font-size: 1.25rem;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 </style>

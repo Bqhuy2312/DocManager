@@ -92,7 +92,7 @@ export default {
 }
 
 .display-4 {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: bold;
   color: #171717;
 }

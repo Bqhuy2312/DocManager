@@ -73,17 +73,17 @@ export default {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  padding: 24px;
+  padding: 20px;
   background: #f6f6f4;
 }
 
 .login-box {
   background: white;
-  padding: 40px;
+  padding: 32px;
   border: 1px solid #dededb;
   border-radius: 8px;
   width: 100%;
-  max-width: 400px;
+  max-width: 360px;
 }
 
 </style>

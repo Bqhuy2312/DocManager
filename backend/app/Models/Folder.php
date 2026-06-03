@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUuid;
 use Illuminate\Database\Eloquent\Model;
 
 class Folder extends Model
 {
+    use HasUuid;
+
     protected $keyType = 'string';
 
     public $incrementing = false;
@@ -25,6 +28,11 @@ class Folder extends Model
     public function children()
     {
         return $this->hasMany(Folder::class, 'parent_id');
+    }
+
+    public function descendants()
+    {
+        return $this->children()->with('descendants');
     }
 
     public function documents()

@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'cloudinary' => [
+        'cloud_name' => env('CLOUDINARY_CLOUD_NAME'),
+        'api_key' => env('CLOUDINARY_API_KEY'),
+        'api_secret' => env('CLOUDINARY_API_SECRET'),
+        'documents_folder' => env('CLOUDINARY_DOCUMENTS_FOLDER', 'doc-manager/documents'),
+        'avatars_folder' => env('CLOUDINARY_AVATARS_FOLDER', 'doc-manager/avatars'),
+    ],
+
 ];

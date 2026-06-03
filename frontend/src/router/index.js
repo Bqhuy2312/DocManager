@@ -9,6 +9,7 @@ import Upload from "../pages/Upload.vue";
 import Members from "../pages/Members.vue";
 import Settings from "../pages/Settings.vue";
 import DocumentDetail from "../pages/DocumentDetail.vue";
+import Approvals from "../pages/Approvals.vue";
 
 const routes = [
   {
@@ -51,9 +52,16 @@ const routes = [
     component: Folders
   },
   {
+    path: '/approvals',
+    name: 'Approvals',
+    component: Approvals,
+    meta: { requiresAdmin: true }
+  },
+  {
     path: '/upload',
     name: 'Upload',
-    component: Upload
+    component: Upload,
+    meta: { roles: ['admin', 'editor'] }
   },
   {
     path: '/members',
@@ -90,6 +98,8 @@ router.beforeEach((to, from, next) => {
   } else if (token && to.path === '/login') {
     next('/dashboard')
   } else if (to.meta.requiresAdmin && user?.role !== 'admin') {
+    next('/dashboard')
+  } else if (to.meta.roles && !to.meta.roles.includes(user?.role)) {
     next('/dashboard')
   } else {
     next()
