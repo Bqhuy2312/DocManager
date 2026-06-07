@@ -1,52 +1,57 @@
 <template>
   <div class="container-fluid py-4">
-    <h1 class="mb-4"><i class="fas fa-star"></i> Tài Liệu Yêu Thích</h1>
+    <h1 class="mb-4"><i class="fas fa-star"></i> Tài Liệu Đánh Dấu</h1>
 
-    <div v-if="favorites.length === 0" class="alert alert-info">
-      Chưa có tài liệu yêu thích nào. Hãy bổ sung thêm!
+    <div v-if="error" class="alert alert-danger">{{ error }}</div>
+    <p v-if="loading" class="text-muted">Đang tải tài liệu đánh dấu...</p>
+
+    <div v-else-if="favorites.length === 0" class="alert alert-info">
+      Chưa có tài liệu đánh dấu nào.
     </div>
 
-    <div class="row g-4">
-      <div class="col-md-6 col-lg-4" v-for="doc in favorites" :key="doc.id">
+    <div v-else class="row g-4">
+      <div class="col-md-6 col-lg-4" v-for="document in favorites" :key="document.id">
         <div
           class="card favorite-document-card h-100"
           role="button"
           tabindex="0"
-          @click="viewDocument(doc.id)"
-          @keydown.enter="viewDocument(doc.id)"
-          @keydown.space.prevent="viewDocument(doc.id)"
+          @click="viewDocument(document.id)"
+          @keydown.enter="viewDocument(document.id)"
+          @keydown.space.prevent="viewDocument(document.id)"
         >
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-start mb-3">
               <div>
                 <h5 class="card-title fw-bold">
-                  {{ doc.name }}
+                  {{ document.title }}
                 </h5>
 
                 <span class="badge bg-primary me-2">
-                  {{ doc.category }}
+                  {{ document.category }}
                 </span>
 
                 <span class="badge bg-success">
-                  {{ doc.department }}
+                  {{ document.folder }}
                 </span>
               </div>
 
               <button
-                class="btn btn-link text-warning p-0"
-                @click.stop="removeFavorite(doc.id)"
+                class="favorite-star active"
+                type="button"
+                aria-label="Bỏ đánh dấu"
+                @click.stop="removeFavorite(document)"
               >
-                <i class="fas fa-star fs-5"></i>
+                <i class="fas fa-star"></i>
               </button>
             </div>
 
             <p class="text-muted">
-              {{ doc.description }}
+              {{ document.description || "Không có mô tả." }}
             </p>
 
             <div class="mb-3">
               <span
-                v-for="tag in doc.tags || []"
+                v-for="tag in document.tags || []"
                 :key="tag"
                 class="badge rounded-pill bg-light text-dark border me-1"
               >
@@ -55,19 +60,17 @@
             </div>
           </div>
 
-          <div
-            class="card-footer bg-white d-flex justify-content-between align-items-center"
-          >
+          <div class="card-footer bg-white d-flex justify-content-between align-items-center">
             <div class="favorite-document-meta">
-              <span><i class="fas fa-clock me-1"></i>Thời gian: {{ formatDateTime(doc.updatedAt) }}</span>
-              <span><i class="fas fa-weight-hanging me-1"></i>Kích thước: {{ formatFileSize(doc.fileSize) }}</span>
-              <span><i class="fas fa-upload me-1"></i>Tải lên: {{ formatDate(doc.uploadedAt) }}</span>
+              <span><i class="fas fa-clock me-1"></i>Thời gian: {{ formatDateTime(document.updated_at) }}</span>
+              <span><i class="fas fa-weight-hanging me-1"></i>Kích thước: {{ formatFileSize(document.file_size) }}</span>
+              <span><i class="fas fa-upload me-1"></i>Tải lên: {{ formatDate(document.created_at) }}</span>
             </div>
 
             <div>
               <button
                 class="btn btn-outline-success btn-sm"
-                @click.stop="downloadDocument(doc.id)"
+                @click.stop="downloadDocument(document)"
               >
                 <i class="fas fa-download"></i>
                 Tải xuống
@@ -81,45 +84,47 @@
 </template>
 
 <script>
+import { getFavoriteDocuments, toggleFavoriteDocument } from "@/services/documentService";
+
 export default {
   name: "Favorites",
   data() {
     return {
-      favorites: [
-        {
-          id: 1,
-          name: "Quy trình tuyển dụng",
-          description: "Quy trình chi tiết cho việc tuyển dụng nhân sự",
-          category: "Quy trình",
-          department: "Nhân sự",
-          updatedAt: new Date("2026-05-30"),
-          uploadedAt: new Date("2026-05-18"),
-          fileSize: 2480000,
-          tags: ["HR", "Tuyen dung"],
-        },
-        {
-          id: 3,
-          name: "Chính sách làm việc",
-          description: "Các chính sách làm việc của công ty",
-          category: "Chính sách",
-          department: "Tài chính",
-          updatedAt: new Date("2026-05-25"),
-          uploadedAt: new Date("2026-05-10"),
-          fileSize: 1560000,
-          tags: ["Chinh sach", "Noi bo"],
-        },
-      ],
+      favorites: [],
+      loading: false,
+      error: "",
     };
   },
+  async mounted() {
+    await this.loadFavorites();
+  },
   methods: {
+    async loadFavorites() {
+      this.loading = true;
+      this.error = "";
+      try {
+        this.favorites = await getFavoriteDocuments();
+      } catch (error) {
+        this.error = error.response?.data?.message || "Không thể tải tài liệu đánh dấu.";
+      } finally {
+        this.loading = false;
+      }
+    },
     viewDocument(id) {
       this.$router.push(`/documents/${id}`);
     },
-    downloadDocument(id) {
-      alert(`Tải xuống tài liệu ${id}`);
+    downloadDocument(document) {
+      window.open(document.file_path, "_blank");
     },
-    removeFavorite(id) {
-      this.favorites = this.favorites.filter((doc) => doc.id !== id);
+    async removeFavorite(document) {
+      try {
+        const result = await toggleFavoriteDocument(document.id);
+        if (!result.is_favorite) {
+          this.favorites = this.favorites.filter((item) => item.id !== document.id);
+        }
+      } catch (error) {
+        this.error = error.response?.data?.message || "Không thể cập nhật đánh dấu.";
+      }
     },
     formatDate(date) {
       return new Date(date).toLocaleDateString("vi-VN");
@@ -156,6 +161,7 @@ export default {
 
 .card-footer {
   background-color: #f8f9fa;
+  border-top: 1px solid #dededb;
 }
 
 .favorite-document-card {
@@ -173,6 +179,24 @@ export default {
   outline: 0;
 }
 
+.favorite-star {
+  display: inline-grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #f1f1ef;
+  color: #9a9a93;
+}
+
+.favorite-star:hover,
+.favorite-star.active {
+  background: #fff7d6;
+  color: #d99800;
+}
+
 .favorite-document-meta {
   display: grid;
   gap: 6px;
@@ -182,10 +206,6 @@ export default {
 
 .card-title {
   font-size: 1.1rem;
-}
-
-.card-footer {
-  border-top: 1px solid #dededb;
 }
 
 .badge {

@@ -40,7 +40,7 @@
             </li>
             <li><hr class="dropdown-divider"></li>
             <li>
-              <button class="dropdown-item" type="button" @click="logout">
+              <button class="dropdown-item logout-item" type="button" @click="logout">
                 <i class="fas fa-door-open me-2"></i>Đăng xuất
               </button>
             </li>
@@ -230,6 +230,16 @@ export default {
 .dropdown-item:focus {
   background: #f1f1ef;
   color: #171717;
+}
+
+.logout-item {
+  color: #dc2626;
+}
+
+.logout-item:hover,
+.logout-item:focus {
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
 @media (max-width: 850px) {

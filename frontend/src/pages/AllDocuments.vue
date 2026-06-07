@@ -51,9 +51,15 @@
                 </span>
               </div>
 
-              <span class="badge bg-light text-dark border">
-                {{ statusLabel(document.status) }}
-              </span>
+              <button
+                class="favorite-star"
+                type="button"
+                :class="{ active: document.is_favorite }"
+                :aria-label="document.is_favorite ? 'Bỏ đánh dấu' : 'Thêm đánh dấu'"
+                @click.stop="toggleFavorite(document)"
+              >
+                <i class="fas fa-star"></i>
+              </button>
             </div>
 
             <p class="text-muted">
@@ -92,7 +98,7 @@
 </template>
 
 <script>
-import { getDocuments } from "@/services/documentService";
+import { getDocuments, toggleFavoriteDocument } from "@/services/documentService";
 
 export default {
   name: "AllDocuments",
@@ -148,6 +154,14 @@ export default {
     downloadDocument(document) {
       window.open(document.file_path, "_blank");
     },
+    async toggleFavorite(document) {
+      try {
+        const result = await toggleFavoriteDocument(document.id);
+        document.is_favorite = result.is_favorite;
+      } catch (error) {
+        this.error = error.response?.data?.message || "Không thể cập nhật đánh dấu.";
+      }
+    },
     formatDate(date) {
       return new Date(date).toLocaleDateString("vi-VN");
     },
@@ -165,14 +179,6 @@ export default {
       const units = ["Bytes", "KB", "MB", "GB"];
       const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
       return `${Math.round((bytes / Math.pow(1024, index)) * 100) / 100} ${units[index]}`;
-    },
-    statusLabel(status) {
-      return {
-        approved: "Đã phê duyệt",
-        pending: "Chờ phê duyệt",
-        rejected: "Từ chối",
-        draft: "Bản nháp",
-      }[status] || status;
     },
   },
 };
@@ -207,6 +213,24 @@ export default {
   border-color: #171717;
   box-shadow: 0 8px 18px rgba(0,0,0,.08);
   outline: 0;
+}
+
+.favorite-star {
+  display: inline-grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #f1f1ef;
+  color: #9a9a93;
+}
+
+.favorite-star:hover,
+.favorite-star.active {
+  background: #fff7d6;
+  color: #d99800;
 }
 
 .favorite-document-meta {

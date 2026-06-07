@@ -1,30 +1,37 @@
 <template>
   <div class="sidebar">
     <nav class="nav flex-column">
-      <router-link to="/dashboard" class="nav-link" active-class="active">
-        <i class="fas fa-home me-2"></i>Trang chủ
-      </router-link>
-      <router-link to="/documents" class="nav-link" active-class="active">
-        <i class="fas fa-book me-2"></i>Tất cả tài liệu
-      </router-link>
-      <router-link to="/favorites" class="nav-link" active-class="active">
-        <i class="fas fa-star me-2"></i>Yêu thích
-      </router-link>
-      <router-link to="/categories" class="nav-link" active-class="active">
-        <i class="fas fa-tag me-2"></i>Danh mục
-      </router-link>
-      <router-link to="/folders" class="nav-link" active-class="active">
-        <i class="fas fa-folder me-2"></i>Thư mục
-      </router-link>
-      <router-link v-if="canUpload" to="/upload" class="nav-link" active-class="active">
-        <i class="fas fa-arrow-up me-2"></i>Tải lên
-      </router-link>
-      <router-link v-if="isAdmin" to="/approvals" class="nav-link" active-class="active">
-        <i class="fas fa-clipboard-check me-2"></i>Phê duyệt
-      </router-link>
-      <router-link v-if="isAdmin" to="/members" class="nav-link" active-class="active">
-        <i class="fas fa-users me-2"></i>Thành viên
-      </router-link>
+      <div class="nav-section">
+        <div class="nav-heading">Chung</div>
+        <router-link to="/dashboard" class="nav-link" active-class="active">
+          <i class="fas fa-home me-2"></i>Trang chủ
+        </router-link>
+        <router-link to="/documents" class="nav-link" active-class="active">
+          <i class="fas fa-book me-2"></i>Tất cả tài liệu
+        </router-link>
+        <router-link to="/favorites" class="nav-link" active-class="active">
+          <i class="fas fa-star me-2"></i>Đánh dấu
+        </router-link>
+        <router-link to="/categories" class="nav-link" active-class="active">
+          <i class="fas fa-tag me-2"></i>Danh mục
+        </router-link>
+        <router-link v-if="canUpload" to="/upload" class="nav-link" active-class="active">
+          <i class="fas fa-arrow-up me-2"></i>Tải lên
+        </router-link>
+      </div>
+
+      <div v-if="canManageFolders || isAdmin" class="nav-section">
+        <div class="nav-heading">Quản lý</div>
+        <router-link v-if="canManageFolders" to="/folders" class="nav-link" active-class="active">
+          <i class="fas fa-folder me-2"></i>Thư mục
+        </router-link>
+        <router-link v-if="isAdmin" to="/members" class="nav-link" active-class="active">
+          <i class="fas fa-users me-2"></i>Thành viên
+        </router-link>
+        <router-link v-if="isAdmin" to="/approvals" class="nav-link" active-class="active">
+          <i class="fas fa-clipboard-check me-2"></i>Phê duyệt
+        </router-link>
+      </div>
     </nav>
   </div>
 </template>
@@ -34,6 +41,9 @@ export default {
   name: 'Sidebar',
   computed: {
     canUpload() {
+      return ['admin', 'editor'].includes(this.currentUser?.role)
+    },
+    canManageFolders() {
       return ['admin', 'editor'].includes(this.currentUser?.role)
     },
     isAdmin() {
@@ -61,9 +71,20 @@ export default {
 
 .nav {
   display: grid;
-  grid-auto-rows: minmax(42px, 1fr);
+  align-content: start;
+  gap: 16px;
+}
+
+.nav-section {
+  display: grid;
   gap: 6px;
-  height: min(60vh, 420px);
+}
+
+.nav-heading {
+  padding: 0 12px 2px;
+  color: #8a8a84;
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 .nav-link {

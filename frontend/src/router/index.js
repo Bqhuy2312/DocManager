@@ -49,7 +49,8 @@ const routes = [
   {
     path: '/folders',
     name: 'Folders',
-    component: Folders
+    component: Folders,
+    meta: { roles: ['admin', 'editor'] }
   },
   {
     path: '/approvals',

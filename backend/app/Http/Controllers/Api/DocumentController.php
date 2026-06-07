@@ -25,6 +25,9 @@ class DocumentController extends Controller
 
         $documents = Document::query()
             ->with(['folder.parent', 'creator.department', 'approver', 'tags'])
+            ->withExists([
+                'favoritedBy as is_favorite' => fn ($query) => $query->where('user_id', $request->user()->id),
+            ])
             ->when(
                 $request->user()->role === 'admin' && in_array($status, ['approved', 'pending'], true),
                 fn ($query) => $query->where('status', $status),
@@ -54,8 +57,28 @@ class DocumentController extends Controller
         abort_unless($this->canView($request, $document), 403);
 
         return response()->json($this->format(
-            $document->load(['folder.parent', 'creator.department', 'approver', 'tags'])
+            $document
+                ->load(['folder.parent', 'creator.department', 'approver', 'tags'])
+                ->loadExists([
+                    'favoritedBy as is_favorite' => fn ($query) => $query->where('user_id', $request->user()->id),
+                ])
         ));
+    }
+
+    public function favorites(Request $request): JsonResponse
+    {
+        $documents = Document::query()
+            ->with(['folder.parent', 'creator.department', 'approver', 'tags'])
+            ->withExists([
+                'favoritedBy as is_favorite' => fn ($query) => $query->where('user_id', $request->user()->id),
+            ])
+            ->where('status', 'approved')
+            ->whereHas('favoritedBy', fn ($query) => $query->where('user_id', $request->user()->id))
+            ->latest()
+            ->get()
+            ->map(fn (Document $document) => $this->format($document));
+
+        return response()->json($documents);
     }
 
     public function metadata(): JsonResponse
@@ -151,6 +174,24 @@ class DocumentController extends Controller
         ));
     }
 
+    public function toggleFavorite(Request $request, Document $document): JsonResponse
+    {
+        abort_unless($this->canView($request, $document), 403);
+
+        $relation = $request->user()->favorites();
+        $isFavorite = $relation->where('document_id', $document->id)->exists();
+
+        if ($isFavorite) {
+            $relation->detach($document->id);
+        } else {
+            $relation->attach($document->id, ['created_at' => now()]);
+        }
+
+        return response()->json([
+            'is_favorite' => ! $isFavorite,
+        ]);
+    }
+
     public function destroy(Document $document): JsonResponse
     {
         try {
@@ -182,6 +223,7 @@ class DocumentController extends Controller
             'mime_type' => $document->mime_type,
             'version' => $document->version,
             'status' => $document->status,
+            'is_favorite' => (bool) ($document->is_favorite ?? false),
             'tags' => $document->tags->pluck('tag_name')->values(),
             'created_at' => $document->created_at,
             'updated_at' => $document->updated_at,

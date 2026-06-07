@@ -24,7 +24,7 @@
         <div class="col-md-3">
           <div class="card text-center">
             <div class="card-body">
-              <h5 class="card-title"><i class="fas fa-star me-2"></i>Yêu thích</h5>
+              <h5 class="card-title"><i class="fas fa-star me-2"></i>Đánh dấu</h5>
               <p class="display-4">28</p>
             </div>
           </div>
@@ -45,7 +45,7 @@
           <a class="nav-link" href="#recent" @click="activeTab = 'recent'" :class="{ active: activeTab === 'recent' }"><i class="fas fa-book me-2"></i>Tài liệu gần đây</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="#favorites" @click="activeTab = 'favorites'" :class="{ active: activeTab === 'favorites' }"><i class="fas fa-star me-2"></i>Yêu thích</a>
+          <a class="nav-link" href="#favorites" @click="activeTab = 'favorites'" :class="{ active: activeTab === 'favorites' }"><i class="fas fa-star me-2"></i>Đánh dấu</a>
         </li>
         <li class="nav-item">
           <a class="nav-link" href="#activity" @click="activeTab = 'activity'" :class="{ active: activeTab === 'activity' }"><i class="fas fa-clock me-2"></i>Hoạt động gần đây</a>
@@ -59,7 +59,7 @@
             <p><i class="fas fa-book me-2"></i>Tài liệu gần đây sẽ hiển thị ở đây</p>
           </div>
           <div v-else-if="activeTab === 'favorites'">
-            <p><i class="fas fa-star me-2"></i>Tài liệu yêu thích sẽ hiển thị ở đây</p>
+            <p><i class="fas fa-star me-2"></i>Tài liệu đánh dấu sẽ hiển thị ở đây</p>
           </div>
           <div v-else-if="activeTab === 'activity'">
             <p><i class="fas fa-clock me-2"></i>Hoạt động gần đây sẽ hiển thị ở đây</p>

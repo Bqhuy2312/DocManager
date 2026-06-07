@@ -66,6 +66,7 @@ import {
   deleteDocument,
   getDocument,
 } from "@/services/documentService";
+import { confirmDialog, notify } from "@/services/notificationService";
 
 export default {
   name: "DocumentDetail",
@@ -111,9 +112,17 @@ export default {
       }
     },
     async removeDocument() {
-      if (!confirm("Bạn chắc chắn muốn xóa tài liệu này?")) return;
+      const confirmed = await confirmDialog({
+        title: "Xóa tài liệu",
+        message: "Bạn chắc chắn muốn xóa tài liệu này? Thao tác này không thể hoàn tác.",
+        confirmText: "Xóa tài liệu",
+        tone: "danger",
+      });
+      if (!confirmed) return;
+
       try {
         await deleteDocument(this.document.id);
+        notify({ title: "Đã xóa tài liệu", message: "Tài liệu đã được xóa khỏi hệ thống." });
         this.$router.push("/documents");
       } catch (error) {
         this.error = error.response?.data?.message || "Không thể xóa tài liệu.";

@@ -10,6 +10,11 @@ export const getDocument = async (id) => {
   return response.data;
 };
 
+export const getFavoriteDocuments = async () => {
+  const response = await api.get("/favorites");
+  return response.data;
+};
+
 export const getDocumentMetadata = async () => {
   const response = await api.get("/documents/metadata");
   return response.data;
@@ -22,6 +27,11 @@ export const uploadDocument = async (formData) => {
 
 export const approveDocument = async (id, status) => {
   const response = await api.patch(`/documents/${id}/approval`, { status });
+  return response.data;
+};
+
+export const toggleFavoriteDocument = async (id) => {
+  const response = await api.post(`/documents/${id}/favorite`);
   return response.data;
 };
 

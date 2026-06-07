@@ -2,9 +2,10 @@
   <div class="container-fluid py-4">
     <h1 class="mb-4"><i class="fas fa-users"></i> Quản Lý Thành Viên</h1>
 
-    <button class="btn btn-primary mb-3" @click="showAddMemberModal = true"><i class="fas fa-plus"></i> Thêm thành viên</button>
+    <button class="btn btn-primary mb-3" @click="showAddMemberModal = true">
+      <i class="fas fa-plus"></i> Thêm thành viên
+    </button>
 
-    <!-- Modal thêm thành viên -->
     <div v-if="showAddMemberModal" class="modal d-block" style="background-color: rgba(0,0,0,0.5);">
       <div class="modal-dialog">
         <div class="modal-content">
@@ -49,7 +50,6 @@
       </div>
     </div>
 
-    <!-- Bảng phân quyền -->
     <div class="card mb-4">
       <div class="card-header bg-light">
         <h5 class="mb-0"><i class="fas fa-lock"></i> Ma Trận Phân Quyền</h5>
@@ -66,53 +66,11 @@
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td class="text-start"><strong>Xem tài liệu</strong></td>
-                <td><i class="fas fa-check"></i></td>
-                <td><i class="fas fa-check"></i></td>
-                <td><i class="fas fa-check"></i></td>
-              </tr>
-              <tr>
-                <td class="text-start"><strong>Tạo tài liệu</strong></td>
-                <td><i class="fas fa-times"></i></td>
-                <td><i class="fas fa-check"></i></td>
-                <td><i class="fas fa-check"></i></td>
-              </tr>
-              <tr>
-                <td class="text-start"><strong>Chỉnh sửa tài liệu</strong></td>
-                <td><i class="fas fa-times"></i></td>
-                <td><i class="fas fa-check"></i></td>
-                <td><i class="fas fa-check"></i></td>
-              </tr>
-              <tr>
-                <td class="text-start"><strong>Xóa tài liệu</strong></td>
-                <td><i class="fas fa-times"></i></td>
-                <td><i class="fas fa-times"></i></td>
-                <td><i class="fas fa-check"></i></td>
-              </tr>
-              <tr>
-                <td class="text-start"><strong>Phê duyệt tài liệu</strong></td>
-                <td><i class="fas fa-times"></i></td>
-                <td><i class="fas fa-times"></i></td>
-                <td><i class="fas fa-check"></i></td>
-              </tr>
-              <tr>
-                <td class="text-start"><strong>Tải xuống tài liệu</strong></td>
-                <td><i class="fas fa-check"></i></td>
-                <td><i class="fas fa-check"></i></td>
-                <td><i class="fas fa-check"></i></td>
-              </tr>
-              <tr>
-                <td class="text-start"><strong>Quản lý thư mục</strong></td>
-                <td><i class="fas fa-times"></i></td>
-                <td><i class="fas fa-times"></i></td>
-                <td><i class="fas fa-check"></i></td>
-              </tr>
-              <tr>
-                <td class="text-start"><strong>Quản lý người dùng</strong></td>
-                <td><i class="fas fa-times"></i></td>
-                <td><i class="fas fa-times"></i></td>
-                <td><i class="fas fa-check"></i></td>
+              <tr v-for="permission in permissions" :key="permission.name">
+                <td class="text-start"><strong>{{ permission.name }}</strong></td>
+                <td><i class="fas" :class="permission.viewer ? 'fa-check' : 'fa-times'"></i></td>
+                <td><i class="fas" :class="permission.editor ? 'fa-check' : 'fa-times'"></i></td>
+                <td><i class="fas" :class="permission.admin ? 'fa-check' : 'fa-times'"></i></td>
               </tr>
             </tbody>
           </table>
@@ -120,7 +78,6 @@
       </div>
     </div>
 
-    <!-- Danh sách thành viên -->
     <div class="card">
       <div class="card-header bg-light">
         <h5 class="mb-0"><i class="fas fa-list"></i> Danh Sách Thành Viên</h5>
@@ -149,8 +106,12 @@
               </td>
               <td>{{ formatDate(member.joinedAt) }}</td>
               <td>
-                <button class="btn btn-sm btn-warning" @click="editMember(member.id)"><i class="fas fa-edit"></i></button>
-                <button class="btn btn-sm btn-danger" @click="deleteMember(member.id)"><i class="fas fa-trash"></i></button>
+                <button class="btn btn-sm btn-warning" @click="editMember(member.id)">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-danger ms-1" @click="deleteMember(member.id)">
+                  <i class="fas fa-trash"></i>
+                </button>
               </td>
             </tr>
           </tbody>
@@ -161,6 +122,8 @@
 </template>
 
 <script>
+import { confirmDialog, notify } from "@/services/notificationService";
+
 export default {
   name: 'Members',
   data() {
@@ -172,6 +135,16 @@ export default {
         department: 'HR',
         role: 'viewer'
       },
+      permissions: [
+        { name: 'Xem tài liệu', viewer: true, editor: true, admin: true },
+        { name: 'Tạo tài liệu', viewer: false, editor: true, admin: true },
+        { name: 'Chỉnh sửa tài liệu', viewer: false, editor: true, admin: true },
+        { name: 'Xóa tài liệu', viewer: false, editor: false, admin: true },
+        { name: 'Phê duyệt tài liệu', viewer: false, editor: false, admin: true },
+        { name: 'Tải xuống tài liệu', viewer: true, editor: true, admin: true },
+        { name: 'Quản lý thư mục', viewer: false, editor: true, admin: true },
+        { name: 'Quản lý người dùng', viewer: false, editor: false, admin: true }
+      ],
       members: [
         { id: 1, name: 'Nguyễn Văn A', email: 'admin@demo.com', department: 'Quản lý', role: 'admin', joinedAt: new Date('2026-01-01') },
         { id: 2, name: 'Trần Thị B', email: 'editor@demo.com', department: 'Nhân sự', role: 'editor', joinedAt: new Date('2026-02-15') },
@@ -191,15 +164,23 @@ export default {
         })
         this.newMember = { name: '', email: '', department: 'HR', role: 'viewer' }
         this.showAddMemberModal = false
-        alert('<i class="fas fa-check"></i> Thêm thành viên thành công')
+        notify({ title: 'Đã thêm thành viên', message: 'Thành viên mới đã được thêm vào danh sách.' })
       }
     },
     editMember(id) {
-      alert(`Chỉnh sửa thành viên ${id}`)
+      notify({ title: 'Chỉnh sửa thành viên', message: `Đang mở chỉnh sửa thành viên ${id}.`, type: 'info' })
     },
-    deleteMember(id) {
-      if (confirm('Bạn chắc chắn muốn xóa thành viên này?')) {
+    async deleteMember(id) {
+      const confirmed = await confirmDialog({
+        title: 'Xóa thành viên',
+        message: 'Bạn chắc chắn muốn xóa thành viên này?',
+        confirmText: 'Xóa thành viên',
+        tone: 'danger'
+      })
+
+      if (confirmed) {
         this.members = this.members.filter(m => m.id !== id)
+        notify({ title: 'Đã xóa thành viên', message: 'Thành viên đã được xóa khỏi danh sách.' })
       }
     },
     formatDate(date) {

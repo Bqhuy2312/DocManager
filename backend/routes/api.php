@@ -15,9 +15,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::get('/documents/metadata', [DocumentController::class, 'metadata']);
+    Route::get('/favorites', [DocumentController::class, 'favorites']);
     Route::get('/documents', [DocumentController::class, 'index']);
     Route::get('/documents/{document}', [DocumentController::class, 'show']);
     Route::get('/documents/{document}/download', [DocumentController::class, 'download']);
+    Route::post('/documents/{document}/favorite', [DocumentController::class, 'toggleFavorite']);
     Route::get('/folders', [FolderController::class, 'index']);
     Route::get('/folders/categories', [FolderController::class, 'categories']);
 

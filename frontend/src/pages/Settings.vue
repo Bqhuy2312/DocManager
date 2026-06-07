@@ -205,6 +205,7 @@
 
 <script>
 import { uploadAvatar } from "@/services/authService";
+import { notify } from "@/services/notificationService";
 
 export default {
   name: 'Settings',
@@ -270,20 +271,20 @@ export default {
       }
     },
     saveProfile() {
-      alert('<i class="fas fa-check"></i> Đã lưu thông tin hồ sơ')
+      notify({ title: 'Đã lưu hồ sơ', message: 'Thông tin hồ sơ đã được cập nhật.' })
     },
     saveGeneral() {
-      alert('<i class="fas fa-check"></i> Đã lưu cài đặt chung')
+      notify({ title: 'Đã lưu cài đặt', message: 'Cài đặt chung đã được cập nhật.' })
     },
     saveNotification() {
-      alert('<i class="fas fa-check"></i> Đã lưu cài đặt thông báo')
+      notify({ title: 'Đã lưu thông báo', message: 'Cài đặt thông báo đã được cập nhật.' })
     },
     changePassword() {
       if (this.password.new !== this.password.confirm) {
-        alert('<i class="fas fa-times"></i> Mật khẩu xác nhận không khớp')
+        notify({ title: 'Mật khẩu không khớp', message: 'Vui lòng kiểm tra lại mật khẩu xác nhận.', type: 'danger' })
         return
       }
-      alert('<i class="fas fa-check"></i> Đã đổi mật khẩu thành công')
+      notify({ title: 'Đã đổi mật khẩu', message: 'Mật khẩu của bạn đã được cập nhật.' })
       this.password = { current: '', new: '', confirm: '' }
     }
   }

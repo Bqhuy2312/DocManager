@@ -4,11 +4,11 @@
       <div>
         <span class="eyebrow">Thư viện nội bộ</span>
         <h1 class="mb-1">Danh Mục Tài Liệu</h1>
-        <p class="text-muted mb-0">Duyệt nhanh tài liệu theo thư mục con và phòng ban.</p>
+        <p class="text-muted mb-0">Chọn danh mục cha, sau đó lọc tiếp theo danh mục con nếu cần.</p>
       </div>
       <div class="summary-box">
-        <strong>{{ categories.length }}</strong>
-        <span>Danh mục</span>
+        <strong>{{ parentCategories.length }}</strong>
+        <span>Danh mục cha</span>
       </div>
     </div>
 
@@ -18,33 +18,35 @@
     <template v-else>
       <section class="category-nav">
         <button
-          v-for="category in categories"
+          v-for="category in parentCategories"
           :key="category.id"
           class="category-tab"
-          :class="{ active: selectedCategory?.id === category.id }"
+          :class="{ active: selectedParent?.id === category.id }"
           type="button"
-          @click="selectCategory(category)"
+          @click="selectParent(category)"
         >
           <span class="category-tab-icon"><i class="fas fa-folder"></i></span>
           <span>
             <strong>{{ category.name }}</strong>
-            <small>{{ category.parent.name }}</small>
+            <small>{{ childCategoriesFor(category).length }} danh mục con</small>
           </span>
-          <em>{{ documentsFor(category.id).length }}</em>
+          <em>{{ documentsForTree(category).length }}</em>
         </button>
       </section>
 
-      <section v-if="selectedCategory" class="category-content">
+      <section v-if="selectedParent" class="category-content">
         <header class="content-heading">
           <div>
             <div class="breadcrumb-line">
               <i class="fas fa-home me-1"></i>Danh mục
-              <i class="fas fa-chevron-right mx-2"></i>{{ selectedCategory.parent.name }}
-              <i class="fas fa-chevron-right mx-2"></i>{{ selectedCategory.name }}
+              <i class="fas fa-chevron-right mx-2"></i>{{ selectedParent.name }}
+              <template v-if="selectedChild">
+                <i class="fas fa-chevron-right mx-2"></i>{{ selectedChild.name }}
+              </template>
             </div>
-            <h2 class="mb-1">{{ selectedCategory.name }}</h2>
+            <h2 class="mb-1">{{ selectedChild?.name || selectedParent.name }}</h2>
             <p class="text-muted mb-0">
-              {{ selectedCategory.parent.name }} · {{ filteredDocuments.length }} tài liệu
+              {{ filteredDocuments.length }} tài liệu
             </p>
           </div>
           <label class="category-search">
@@ -52,6 +54,29 @@
             <input v-model="searchQuery" type="search" placeholder="Tìm trong danh mục...">
           </label>
         </header>
+
+        <div v-if="childCategories.length" class="subcategory-nav">
+          <button
+            class="subcategory-tab"
+            :class="{ active: !selectedChild }"
+            type="button"
+            @click="selectChild(null)"
+          >
+            <i class="fas fa-layer-group me-1"></i>Tất cả
+            <span>{{ documentsForTree(selectedParent).length }}</span>
+          </button>
+          <button
+            v-for="category in childCategories"
+            :key="category.id"
+            class="subcategory-tab"
+            :class="{ active: selectedChild?.id === category.id }"
+            type="button"
+            @click="selectChild(category)"
+          >
+            <i class="fas fa-folder-open me-1"></i>{{ category.label }}
+            <span>{{ documentsForTree(category).length }}</span>
+          </button>
+        </div>
 
         <div v-if="!filteredDocuments.length" class="empty-state">
           <i class="far fa-folder-open"></i>
@@ -85,9 +110,15 @@
                     </span>
                   </div>
 
-                  <span class="badge bg-light text-dark border">
-                    {{ statusLabel(document.status) }}
-                  </span>
+                  <button
+                    class="favorite-star"
+                    type="button"
+                    :class="{ active: document.is_favorite }"
+                    :aria-label="document.is_favorite ? 'Bỏ đánh dấu' : 'Thêm đánh dấu'"
+                    @click.stop="toggleFavorite(document)"
+                  >
+                    <i class="fas fa-star"></i>
+                  </button>
                 </div>
 
                 <p class="text-muted">
@@ -127,32 +158,39 @@
       <div v-else class="empty-state standalone">
         <i class="far fa-folder-open"></i>
         <strong>Chưa có danh mục</strong>
-        <span>Tạo thư mục con trong trang quản lý thư mục để bắt đầu.</span>
+        <span>Tạo thư mục cha trong trang quản lý thư mục để bắt đầu.</span>
       </div>
     </template>
   </div>
 </template>
 
 <script>
-import { getCategoryFolders, getDocuments } from "@/services/documentService";
+import { getDocuments, getFolders, toggleFavoriteDocument } from "@/services/documentService";
 
 export default {
   name: "Categories",
   data() {
     return {
-      categories: [],
+      parentCategories: [],
       documents: [],
-      selectedCategory: null,
+      selectedParent: null,
+      selectedChild: null,
       searchQuery: "",
       loading: false,
       error: "",
     };
   },
   computed: {
+    childCategories() {
+      return this.selectedParent ? this.childCategoriesFor(this.selectedParent) : [];
+    },
+    selectedScope() {
+      return this.selectedChild || this.selectedParent;
+    },
     filteredDocuments() {
-      if (!this.selectedCategory) return [];
+      if (!this.selectedScope) return [];
       const query = this.searchQuery.trim().toLowerCase();
-      return this.documentsFor(this.selectedCategory.id).filter((document) => {
+      return this.documentsForTree(this.selectedScope).filter((document) => {
         return !query ||
           document.title.toLowerCase().includes(query) ||
           (document.tags || []).some((tag) => tag.toLowerCase().includes(query));
@@ -162,8 +200,8 @@ export default {
   async mounted() {
     this.loading = true;
     try {
-      [this.categories, this.documents] = await Promise.all([getCategoryFolders(), getDocuments()]);
-      this.selectedCategory = this.categories[0] || null;
+      [this.parentCategories, this.documents] = await Promise.all([getFolders(), getDocuments()]);
+      this.selectedParent = this.parentCategories[0] || null;
     } catch (error) {
       this.error = error.response?.data?.message || "Không thể tải danh mục.";
     } finally {
@@ -171,18 +209,48 @@ export default {
     }
   },
   methods: {
-    selectCategory(category) {
-      this.selectedCategory = category;
+    selectParent(category) {
+      this.selectedParent = category;
+      this.selectedChild = null;
       this.searchQuery = "";
     },
-    documentsFor(folderId) {
-      return this.documents.filter((document) => document.folder_id === folderId);
+    selectChild(category) {
+      this.selectedChild = category;
+      this.searchQuery = "";
+    },
+    childCategoriesFor(category) {
+      return this.flattenFolders(category.descendants || []);
+    },
+    flattenFolders(folders, depth = 0) {
+      return folders.flatMap((folder) => [
+        { ...folder, label: `${"— ".repeat(depth)}${folder.name}` },
+        ...this.flattenFolders(folder.descendants || [], depth + 1),
+      ]);
+    },
+    folderIdsForTree(folder) {
+      return [
+        folder.id,
+        ...this.flattenFolders(folder.descendants || []).map((child) => child.id),
+      ];
+    },
+    documentsForTree(folder) {
+      if (!folder) return [];
+      const folderIds = this.folderIdsForTree(folder);
+      return this.documents.filter((document) => folderIds.includes(document.folder_id));
     },
     viewDocument(id) {
       this.$router.push(`/documents/${id}`);
     },
     download(document) {
       window.open(document.file_path, "_blank");
+    },
+    async toggleFavorite(document) {
+      try {
+        const result = await toggleFavoriteDocument(document.id);
+        document.is_favorite = result.is_favorite;
+      } catch (error) {
+        this.error = error.response?.data?.message || "Không thể cập nhật đánh dấu.";
+      }
     },
     formatDate(date) {
       return new Date(date).toLocaleDateString("vi-VN");
@@ -201,14 +269,6 @@ export default {
       const units = ["Bytes", "KB", "MB", "GB"];
       const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
       return `${Math.round((bytes / Math.pow(1024, index)) * 100) / 100} ${units[index]}`;
-    },
-    statusLabel(status) {
-      return {
-        approved: "Đã phê duyệt",
-        pending: "Chờ phê duyệt",
-        rejected: "Từ chối",
-        draft: "Bản nháp",
-      }[status] || status;
     },
   },
 };
@@ -249,20 +309,25 @@ export default {
   font-size: 0.72rem;
 }
 
-.category-nav {
+.category-nav,
+.subcategory-nav {
   display: flex;
   gap: 8px;
   overflow-x: auto;
   padding: 4px 0 12px;
 }
 
-.category-tab {
+.subcategory-nav {
+  padding: 14px 16px 8px;
+  border-bottom: 1px solid #dededb;
+}
+
+.category-tab,
+.subcategory-tab {
   display: grid;
-  grid-template-columns: auto minmax(105px, auto) auto;
   flex: 0 0 auto;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
   border: 1px solid #dededb;
   border-radius: 7px;
   background: #fff;
@@ -270,12 +335,31 @@ export default {
   text-align: left;
 }
 
+.category-tab {
+  grid-template-columns: auto minmax(105px, auto) auto;
+  padding: 8px 10px;
+}
+
+.subcategory-tab {
+  grid-template-columns: auto auto;
+  padding: 7px 10px;
+  font-size: 0.86rem;
+}
+
+.subcategory-tab span {
+  color: #707070;
+  font-size: 0.72rem;
+}
+
 .category-tab:hover,
-.category-tab.active {
+.category-tab.active,
+.subcategory-tab:hover,
+.subcategory-tab.active {
   border-color: #171717;
 }
 
-.category-tab.active {
+.category-tab.active,
+.subcategory-tab.active {
   background: #171717;
   color: #fff;
 }
@@ -292,7 +376,8 @@ export default {
 }
 
 .category-tab.active small,
-.category-tab.active em {
+.category-tab.active em,
+.subcategory-tab.active span {
   color: #cfcfcb;
 }
 
@@ -370,6 +455,24 @@ export default {
   border-color: #171717;
   box-shadow: 0 8px 18px rgba(0,0,0,.08);
   outline: 0;
+}
+
+.favorite-star {
+  display: inline-grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #f1f1ef;
+  color: #9a9a93;
+}
+
+.favorite-star:hover,
+.favorite-star.active {
+  background: #fff7d6;
+  color: #d99800;
 }
 
 .favorite-document-meta {
