@@ -26,7 +26,7 @@
     <p v-else-if="!filteredDocuments.length" class="text-muted">Chưa có tài liệu phù hợp.</p>
 
     <div v-else class="row g-4">
-      <div v-for="document in filteredDocuments" :key="document.id" class="col-md-6 col-lg-4">
+      <div v-for="document in paginatedDocuments" :key="document.id" class="col-md-6 col-lg-4">
         <div
           class="card favorite-document-card h-100"
           role="button"
@@ -94,20 +94,32 @@
         </div>
       </div>
     </div>
+
+    <PaginationControls
+      v-if="!loading && filteredDocuments.length"
+      :page="currentPage"
+      :per-page="itemsPerPage"
+      :total="filteredDocuments.length"
+      @update:page="currentPage = $event"
+    />
   </div>
 </template>
 
 <script>
+import PaginationControls from "@/components/common/PaginationControls.vue";
 import { getDocuments, toggleFavoriteDocument } from "@/services/documentService";
 
 export default {
   name: "AllDocuments",
+  components: { PaginationControls },
   data() {
     return {
       documents: [],
       searchQuery: "",
       selectedCategory: "",
       sortBy: "recent",
+      currentPage: 1,
+      itemsPerPage: 15,
       loading: false,
       error: "",
     };
@@ -130,6 +142,21 @@ export default {
           if (this.sortBy === "name") return a.title.localeCompare(b.title);
           return new Date(b.updated_at) - new Date(a.updated_at);
         });
+    },
+    paginatedDocuments() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.filteredDocuments.slice(start, start + this.itemsPerPage);
+    },
+  },
+  watch: {
+    searchQuery() {
+      this.currentPage = 1;
+    },
+    selectedCategory() {
+      this.currentPage = 1;
+    },
+    sortBy() {
+      this.currentPage = 1;
     },
   },
   async mounted() {

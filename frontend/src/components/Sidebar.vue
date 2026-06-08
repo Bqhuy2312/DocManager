@@ -28,6 +28,9 @@
         <router-link v-if="isAdmin" to="/members" class="nav-link" active-class="active">
           <i class="fas fa-users me-2"></i>Thành viên
         </router-link>
+        <router-link v-if="isAdmin" to="/departments" class="nav-link" active-class="active">
+          <i class="fas fa-building me-2"></i>Phòng ban
+        </router-link>
         <router-link v-if="isAdmin" to="/approvals" class="nav-link" active-class="active">
           <i class="fas fa-clipboard-check me-2"></i>Phê duyệt
         </router-link>
@@ -38,26 +41,26 @@
 
 <script>
 export default {
-  name: 'Sidebar',
+  name: "Sidebar",
   computed: {
     canUpload() {
-      return ['admin', 'editor'].includes(this.currentUser?.role)
+      return ["admin", "editor"].includes(this.currentUser?.role);
     },
     canManageFolders() {
-      return ['admin', 'editor'].includes(this.currentUser?.role)
+      return ["admin", "editor"].includes(this.currentUser?.role);
     },
     isAdmin() {
-      return this.currentUser?.role === 'admin'
+      return this.currentUser?.role === "admin";
     },
     currentUser() {
       try {
-        return JSON.parse(localStorage.getItem('user'))
+        return JSON.parse(localStorage.getItem("user"));
       } catch {
-        return null
+        return null;
       }
-    }
-  }
-}
+    },
+  },
+};
 </script>
 
 <style scoped>

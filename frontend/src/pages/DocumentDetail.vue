@@ -1,5 +1,9 @@
 <template>
   <div class="container-fluid py-4">
+    <button class="back-button" type="button" @click="goBack">
+      <i class="fas fa-arrow-left me-2"></i>Quay lại
+    </button>
+
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
     <p v-if="loading" class="text-muted">Đang tải tài liệu...</p>
 
@@ -90,6 +94,13 @@ export default {
     await this.loadDocument();
   },
   methods: {
+    goBack() {
+      if (window.history.length > 1) {
+        this.$router.back();
+      } else {
+        this.$router.push("/documents");
+      }
+    },
     async loadDocument() {
       this.loading = true;
       this.error = "";
@@ -148,3 +159,19 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 20px;
+  border: 0;
+  background: transparent;
+  color: #292929;
+  font-weight: 700;
+}
+
+.back-button:hover {
+  color: #171717;
+}
+</style>

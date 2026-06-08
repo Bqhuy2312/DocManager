@@ -85,7 +85,7 @@
         </div>
 
         <div v-else class="row g-4 document-list">
-          <div v-for="document in filteredDocuments" :key="document.id" class="col-md-6 col-lg-4">
+          <div v-for="document in paginatedDocuments" :key="document.id" class="col-md-6 col-lg-4">
             <div
               class="card favorite-document-card h-100"
               role="button"
@@ -153,6 +153,14 @@
             </div>
           </div>
         </div>
+
+        <PaginationControls
+          v-if="filteredDocuments.length"
+          :page="currentPage"
+          :per-page="itemsPerPage"
+          :total="filteredDocuments.length"
+          @update:page="currentPage = $event"
+        />
       </section>
 
       <div v-else class="empty-state standalone">
@@ -165,10 +173,12 @@
 </template>
 
 <script>
+import PaginationControls from "@/components/common/PaginationControls.vue";
 import { getDocuments, getFolders, toggleFavoriteDocument } from "@/services/documentService";
 
 export default {
   name: "Categories",
+  components: { PaginationControls },
   data() {
     return {
       parentCategories: [],
@@ -176,6 +186,8 @@ export default {
       selectedParent: null,
       selectedChild: null,
       searchQuery: "",
+      currentPage: 1,
+      itemsPerPage: 15,
       loading: false,
       error: "",
     };
@@ -196,6 +208,15 @@ export default {
           (document.tags || []).some((tag) => tag.toLowerCase().includes(query));
       });
     },
+    paginatedDocuments() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.filteredDocuments.slice(start, start + this.itemsPerPage);
+    },
+  },
+  watch: {
+    searchQuery() {
+      this.currentPage = 1;
+    },
   },
   async mounted() {
     this.loading = true;
@@ -213,10 +234,12 @@ export default {
       this.selectedParent = category;
       this.selectedChild = null;
       this.searchQuery = "";
+      this.currentPage = 1;
     },
     selectChild(category) {
       this.selectedChild = category;
       this.searchQuery = "";
+      this.currentPage = 1;
     },
     childCategoriesFor(category) {
       return this.flattenFolders(category.descendants || []);

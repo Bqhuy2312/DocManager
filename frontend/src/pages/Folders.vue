@@ -96,75 +96,84 @@
             </div>
           </div>
 
-          <div v-if="visibleDocuments.length" class="row g-4 document-list">
-            <div v-for="document in visibleDocuments" :key="document.id" class="col-md-6 col-lg-4">
-              <div
-                class="card favorite-document-card h-100"
-                role="button"
-                tabindex="0"
-                @click="viewDocument(document.id)"
-                @keydown.enter="viewDocument(document.id)"
-                @keydown.space.prevent="viewDocument(document.id)"
-              >
-                <div class="card-body">
-                  <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div>
-                      <h5 class="card-title fw-bold">
-                        {{ document.title }}
-                      </h5>
+          <template v-if="visibleDocuments.length">
+            <div class="row g-4 document-list">
+              <div v-for="document in paginatedDocuments" :key="document.id" class="col-md-6 col-lg-4">
+                <div
+                  class="card favorite-document-card h-100"
+                  role="button"
+                  tabindex="0"
+                  @click="viewDocument(document.id)"
+                  @keydown.enter="viewDocument(document.id)"
+                  @keydown.space.prevent="viewDocument(document.id)"
+                >
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                      <div>
+                        <h5 class="card-title fw-bold">
+                          {{ document.title }}
+                        </h5>
 
-                      <span class="badge bg-primary me-2">
-                        {{ document.category }}
-                      </span>
+                        <span class="badge bg-primary me-2">
+                          {{ document.category }}
+                        </span>
 
-                      <span class="badge bg-success">
-                        {{ document.folder }}
-                      </span>
+                        <span class="badge bg-success">
+                          {{ document.folder }}
+                        </span>
+                      </div>
+
+                      <button
+                        class="favorite-star"
+                        type="button"
+                        :class="{ active: document.is_favorite }"
+                        :aria-label="document.is_favorite ? 'Bỏ đánh dấu' : 'Thêm đánh dấu'"
+                        @click.stop="toggleFavorite(document)"
+                      >
+                        <i class="fas fa-star"></i>
+                      </button>
                     </div>
 
-                    <button
-                      class="favorite-star"
-                      type="button"
-                      :class="{ active: document.is_favorite }"
-                      :aria-label="document.is_favorite ? 'Bỏ đánh dấu' : 'Thêm đánh dấu'"
-                      @click.stop="toggleFavorite(document)"
-                    >
-                      <i class="fas fa-star"></i>
-                    </button>
+                    <p class="text-muted">
+                      {{ document.description || "Không có mô tả." }}
+                    </p>
+
+                    <div class="mb-3">
+                      <span
+                        v-for="tag in document.tags || []"
+                        :key="tag"
+                        class="badge rounded-pill bg-light text-dark border me-1"
+                      >
+                        {{ tag }}
+                      </span>
+                    </div>
                   </div>
 
-                  <p class="text-muted">
-                    {{ document.description || "Không có mô tả." }}
-                  </p>
+                  <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+                    <div class="favorite-document-meta">
+                      <span><i class="fas fa-clock me-1"></i>Thời gian: {{ formatDateTime(document.updated_at) }}</span>
+                      <span><i class="fas fa-weight-hanging me-1"></i>Kích thước: {{ formatFileSize(document.file_size) }}</span>
+                      <span><i class="fas fa-upload me-1"></i>Tải lên: {{ formatDate(document.created_at) }}</span>
+                    </div>
 
-                  <div class="mb-3">
-                    <span
-                      v-for="tag in document.tags || []"
-                      :key="tag"
-                      class="badge rounded-pill bg-light text-dark border me-1"
-                    >
-                      {{ tag }}
-                    </span>
-                  </div>
-                </div>
-
-                <div class="card-footer bg-white d-flex justify-content-between align-items-center">
-                  <div class="favorite-document-meta">
-                    <span><i class="fas fa-clock me-1"></i>Thời gian: {{ formatDateTime(document.updated_at) }}</span>
-                    <span><i class="fas fa-weight-hanging me-1"></i>Kích thước: {{ formatFileSize(document.file_size) }}</span>
-                    <span><i class="fas fa-upload me-1"></i>Tải lên: {{ formatDate(document.created_at) }}</span>
-                  </div>
-
-                  <div>
-                    <button class="btn btn-outline-success btn-sm" @click.stop="download(document)">
-                      <i class="fas fa-download"></i>
-                      Tải xuống
-                    </button>
+                    <div>
+                      <button class="btn btn-outline-success btn-sm" @click.stop="download(document)">
+                        <i class="fas fa-download"></i>
+                        Tải xuống
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+
+            <PaginationControls
+              :page="currentPage"
+              :per-page="itemsPerPage"
+              :total="visibleDocuments.length"
+              @update:page="currentPage = $event"
+            />
+          </template>
 
           <div v-else class="empty-documents">
             <i class="far fa-folder-open"></i>
@@ -220,6 +229,7 @@
 
 <script>
 import FolderTreeNode from "@/components/FolderTreeNode.vue";
+import PaginationControls from "@/components/common/PaginationControls.vue";
 import {
   createFolder,
   deleteFolder,
@@ -231,7 +241,7 @@ import { confirmDialog, notify } from "@/services/notificationService";
 
 export default {
   name: "Folders",
-  components: { FolderTreeNode },
+  components: { FolderTreeNode, PaginationControls },
   data() {
     return {
       folders: [],
@@ -241,6 +251,8 @@ export default {
       showCreateModal: false,
       newFolder: { name: "", parentId: "" },
       openMenuFolderId: null,
+      currentPage: 1,
+      itemsPerPage: 15,
       loading: false,
       error: "",
     };
@@ -272,6 +284,10 @@ export default {
     visibleDocuments() {
       if (!this.selectedFolder) return [];
       return this.documents.filter((document) => document.folder_id === this.selectedFolder.id);
+    },
+    paginatedDocuments() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.visibleDocuments.slice(start, start + this.itemsPerPage);
     },
     documentCounts() {
       return this.documents.reduce((counts, document) => {
@@ -309,6 +325,7 @@ export default {
     selectFolder(folder) {
       this.selectedFolder = folder;
       this.openMenuFolderId = null;
+      this.currentPage = 1;
       if (!this.expandedIds.includes(folder.id)) this.expandedIds.push(folder.id);
     },
     viewDocument(id) {

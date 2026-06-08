@@ -10,7 +10,7 @@
     </div>
 
     <div v-else class="row g-4">
-      <div class="col-md-6 col-lg-4" v-for="document in favorites" :key="document.id">
+      <div class="col-md-6 col-lg-4" v-for="document in paginatedFavorites" :key="document.id">
         <div
           class="card favorite-document-card h-100"
           role="button"
@@ -80,20 +80,38 @@
         </div>
       </div>
     </div>
+
+    <PaginationControls
+      v-if="!loading && favorites.length"
+      :page="currentPage"
+      :per-page="itemsPerPage"
+      :total="favorites.length"
+      @update:page="currentPage = $event"
+    />
   </div>
 </template>
 
 <script>
+import PaginationControls from "@/components/common/PaginationControls.vue";
 import { getFavoriteDocuments, toggleFavoriteDocument } from "@/services/documentService";
 
 export default {
   name: "Favorites",
+  components: { PaginationControls },
   data() {
     return {
       favorites: [],
+      currentPage: 1,
+      itemsPerPage: 15,
       loading: false,
       error: "",
     };
+  },
+  computed: {
+    paginatedFavorites() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.favorites.slice(start, start + this.itemsPerPage);
+    },
   },
   async mounted() {
     await this.loadFavorites();
@@ -121,6 +139,7 @@ export default {
         const result = await toggleFavoriteDocument(document.id);
         if (!result.is_favorite) {
           this.favorites = this.favorites.filter((item) => item.id !== document.id);
+          this.currentPage = Math.min(this.currentPage, Math.max(1, Math.ceil(this.favorites.length / this.itemsPerPage)));
         }
       } catch (error) {
         this.error = error.response?.data?.message || "Không thể cập nhật đánh dấu.";

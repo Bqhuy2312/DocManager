@@ -34,7 +34,7 @@
     </div>
 
     <div v-else class="row g-4">
-      <div v-for="document in documents" :key="document.id" class="col-md-6 col-lg-4">
+      <div v-for="document in paginatedDocuments" :key="document.id" class="col-md-6 col-lg-4">
         <div
           class="card favorite-document-card h-100"
           role="button"
@@ -105,18 +105,30 @@
         </div>
       </div>
     </div>
+
+    <PaginationControls
+      v-if="!loading && documents.length"
+      :page="currentPage"
+      :per-page="itemsPerPage"
+      :total="documents.length"
+      @update:page="currentPage = $event"
+    />
   </div>
 </template>
 
 <script>
+import PaginationControls from "@/components/common/PaginationControls.vue";
 import { approveDocument, getDocuments } from "@/services/documentService";
 
 export default {
   name: "Approvals",
+  components: { PaginationControls },
   data() {
     return {
       documents: [],
       selectedStatus: "pending",
+      currentPage: 1,
+      itemsPerPage: 15,
       loading: false,
       error: "",
       statuses: [
@@ -124,6 +136,12 @@ export default {
         { value: "approved", label: "Đã phê duyệt", icon: "fas fa-check-circle" },
       ],
     };
+  },
+  computed: {
+    paginatedDocuments() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.documents.slice(start, start + this.itemsPerPage);
+    },
   },
   async mounted() {
     await this.loadDocuments();
@@ -142,6 +160,7 @@ export default {
     },
     async changeStatus(status) {
       this.selectedStatus = status;
+      this.currentPage = 1;
       await this.loadDocuments();
     },
     viewDocument(id) {

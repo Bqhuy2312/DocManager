@@ -1,12 +1,15 @@
 <?php
 
 namespace App\Models;
+
+use App\Models\Concerns\HasUuid;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
 class User extends Authenticatable
 {
-      use HasApiTokens;
+    use HasApiTokens;
+    use HasUuid;
 
     protected $keyType = 'string';
 

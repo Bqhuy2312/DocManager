@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUuid;
 use Illuminate\Database\Eloquent\Model;
 
 class ActivityLog extends Model
 {
+    use HasUuid;
+
     protected $keyType = 'string';
 
     public $incrementing = false;

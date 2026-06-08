@@ -7,6 +7,8 @@ import Categories from "../pages/Categories.vue";
 import Folders from "../pages/Folders.vue";
 import Upload from "../pages/Upload.vue";
 import Members from "../pages/Members.vue";
+import MemberDetail from "../pages/MemberDetail.vue";
+import Departments from "../pages/Departments.vue";
 import Settings from "../pages/Settings.vue";
 import DocumentDetail from "../pages/DocumentDetail.vue";
 import Approvals from "../pages/Approvals.vue";
@@ -68,6 +70,18 @@ const routes = [
     path: '/members',
     name: 'Members',
     component: Members,
+    meta: { requiresAdmin: true }
+  },
+  {
+    path: '/members/:id',
+    name: 'MemberDetail',
+    component: MemberDetail,
+    meta: { requiresAdmin: true }
+  },
+  {
+    path: '/departments',
+    name: 'Departments',
+    component: Departments,
     meta: { requiresAdmin: true }
   },
   {

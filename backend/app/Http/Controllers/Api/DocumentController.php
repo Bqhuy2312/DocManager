@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Document;
 use App\Models\Folder;
 use App\Services\CloudinaryService;
@@ -146,7 +147,9 @@ class DocumentController extends Controller
         }
 
         return response()->json(
-            $this->format($document->load(['folder.parent', 'creator.department', 'approver', 'tags'])),
+            tap($this->format($document->load(['folder.parent', 'creator.department', 'approver', 'tags'])), function () use ($request, $document): void {
+                $this->logActivity($request, 'uploaded', $document);
+            }),
             201
         );
     }
@@ -169,6 +172,8 @@ class DocumentController extends Controller
             'status' => $validated['status'],
         ]);
 
+        $this->logActivity($request, $validated['status'] === 'approved' ? 'approved' : 'rejected', $document);
+
         return response()->json($this->format(
             $document->load(['folder.parent', 'creator.department', 'approver', 'tags'])
         ));
@@ -187,18 +192,22 @@ class DocumentController extends Controller
             $relation->attach($document->id, ['created_at' => now()]);
         }
 
+        $this->logActivity($request, $isFavorite ? 'unfavorited' : 'favorited', $document);
+
         return response()->json([
             'is_favorite' => ! $isFavorite,
         ]);
     }
 
-    public function destroy(Document $document): JsonResponse
+    public function destroy(Request $request, Document $document): JsonResponse
     {
         try {
             $this->cloudinary->destroyDocument($document->cloudinary_public_id);
         } catch (RuntimeException $exception) {
             return response()->json(['message' => $exception->getMessage()], 503);
         }
+
+        $this->logActivity($request, 'deleted', $document);
 
         $document->delete();
 
@@ -235,5 +244,19 @@ class DocumentController extends Controller
         return $request->user()->role === 'admin'
             || $document->status === 'approved'
             || ($request->user()->role === 'editor' && $document->created_by === $request->user()->id);
+    }
+
+    private function logActivity(Request $request, string $action, Document $document): void
+    {
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => $action,
+            'target_type' => Document::class,
+            'target_id' => $document->id,
+            'metadata' => [
+                'document_id' => $document->id,
+                'document_title' => $document->title,
+            ],
+        ]);
     }
 }
