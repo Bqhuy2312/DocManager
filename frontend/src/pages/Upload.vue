@@ -114,6 +114,9 @@
 
 <script>
 import { getDocumentMetadata, uploadDocument } from "@/services/documentService";
+import { APP_SETTINGS_EVENT, isAutoSaveEnabled } from "@/services/appSettingsService";
+
+const DRAFT_KEY = "docmanager_upload_draft";
 
 export default {
   name: "Upload",
@@ -161,11 +164,62 @@ export default {
     try {
       this.metadata = await getDocumentMetadata();
       this.selectedParentId = this.parentFolders[0]?.id || "";
+      this.restoreDraft();
     } catch (error) {
       this.error = error.response?.data?.message || "Không thể tải danh mục và thư mục.";
     }
+    window.addEventListener(APP_SETTINGS_EVENT, this.handleSettingsChange);
+  },
+  beforeUnmount() {
+    window.removeEventListener(APP_SETTINGS_EVENT, this.handleSettingsChange);
+  },
+  watch: {
+    form: {
+      deep: true,
+      handler() {
+        this.saveDraft();
+      },
+    },
+    selectedParentId() {
+      this.saveDraft();
+    },
   },
   methods: {
+    handleSettingsChange(event) {
+      if (!event.detail?.auto_save) {
+        localStorage.removeItem(DRAFT_KEY);
+      }
+    },
+    restoreDraft() {
+      if (!isAutoSaveEnabled()) return;
+
+      try {
+        const draft = JSON.parse(localStorage.getItem(DRAFT_KEY));
+        if (!draft) return;
+
+        this.form = {
+          ...this.form,
+          title: draft.title || "",
+          description: draft.description || "",
+          folderId: draft.folderId || "",
+          tags: draft.tags || "",
+        };
+        this.selectedParentId = draft.selectedParentId || this.selectedParentId;
+      } catch {
+        localStorage.removeItem(DRAFT_KEY);
+      }
+    },
+    saveDraft() {
+      if (!isAutoSaveEnabled()) return;
+
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({
+        title: this.form.title,
+        description: this.form.description,
+        folderId: this.form.folderId,
+        tags: this.form.tags,
+        selectedParentId: this.selectedParentId,
+      }));
+    },
     childrenFor(parentId) {
       return this.metadata.folders
         .filter((folder) => folder.parent?.id === parentId)
@@ -194,6 +248,7 @@ export default {
       try {
         const document = await uploadDocument(formData);
         this.success = "Tải tài liệu lên thành công. Tài liệu đang chờ phê duyệt.";
+        localStorage.removeItem(DRAFT_KEY);
         this.resetForm();
         this.$router.push(`/documents/${document.id}`);
       } catch (error) {

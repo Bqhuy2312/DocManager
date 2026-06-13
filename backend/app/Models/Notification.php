@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUuid;
 use Illuminate\Database\Eloquent\Model;
 
 class Notification extends Model
 {
+    use HasUuid;
+
     protected $keyType = 'string';
 
     public $incrementing = false;
@@ -17,7 +20,12 @@ class Notification extends Model
         'title',
         'message',
         'type',
+        'link',
         'is_read'
+    ];
+
+    protected $casts = [
+        'is_read' => 'boolean',
     ];
 
     public function user()

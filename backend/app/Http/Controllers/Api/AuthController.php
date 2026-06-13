@@ -19,7 +19,8 @@ class AuthController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
-            'password' => 'required'
+            'password' => 'required',
+            'two_factor_code' => ['nullable', 'digits:6'],
         ]);
 
         $user = User::where('email', $request->email)->first();
@@ -34,6 +35,24 @@ class AuthController extends Controller
             return response()->json([
                 'message' => 'Sai mật khẩu'
             ], 401);
+        }
+
+        $settings = $user->settings;
+
+        if ($settings?->two_factor_enabled) {
+            if (!$request->filled('two_factor_code')) {
+                return response()->json([
+                    'message' => 'Tài khoản này đã bật xác thực hai yếu tố.',
+                    'requires_2fa' => true,
+                ], 423);
+            }
+
+            if (!$settings->two_factor_pin_hash || !Hash::check($request->two_factor_code, $settings->two_factor_pin_hash)) {
+                return response()->json([
+                    'message' => 'Mã xác thực hai yếu tố không đúng.',
+                    'requires_2fa' => true,
+                ], 401);
+            }
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;

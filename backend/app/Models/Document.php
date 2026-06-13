@@ -54,6 +54,11 @@ class Document extends Model
         return $this->hasMany(DocumentTag::class);
     }
 
+    public function versions()
+    {
+        return $this->hasMany(DocumentVersion::class);
+    }
+
     public function favoritedBy()
     {
         return $this->belongsToMany(

@@ -15,6 +15,8 @@
 import Navbar from './components/Navbar.vue'
 import Sidebar from './components/Sidebar.vue'
 import NotificationHost from './components/common/NotificationHost.vue'
+import { applyAppSettings, getStoredAppSettings } from './services/appSettingsService'
+import { getSettings } from './services/settingsService'
 
 export default {
   components: {
@@ -22,9 +24,30 @@ export default {
     NotificationHost,
     Sidebar
   },
+  mounted() {
+    applyAppSettings(getStoredAppSettings())
+    this.loadAppSettings()
+  },
+  watch: {
+    '$route.path'() {
+      this.loadAppSettings()
+    }
+  },
   computed: {
     isLoggedIn() {
       return this.$route.path !== '/login' && localStorage.getItem('user')
+    }
+  },
+  methods: {
+    async loadAppSettings() {
+      if (!this.isLoggedIn) return
+
+      try {
+        const data = await getSettings()
+        applyAppSettings(data.settings)
+      } catch {
+        applyAppSettings(getStoredAppSettings())
+      }
     }
   }
 }

@@ -1,7 +1,10 @@
 import api from "./api";
 
-export const login = async (email, password) => {
-  const response = await api.post('/login', { email, password })
+export const login = async (email, password, twoFactorCode = "") => {
+  const payload = { email, password }
+  if (twoFactorCode) payload.two_factor_code = twoFactorCode
+
+  const response = await api.post('/login', payload)
   localStorage.setItem('token', response.data.token)
   return response.data
 }

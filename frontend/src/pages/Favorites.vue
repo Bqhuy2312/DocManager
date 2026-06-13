@@ -69,6 +69,7 @@
 
             <div>
               <button
+                v-if="document.status === 'approved'"
                 class="btn btn-outline-success btn-sm"
                 @click.stop="downloadDocument(document)"
               >
@@ -132,6 +133,7 @@ export default {
       this.$router.push(`/documents/${id}`);
     },
     downloadDocument(document) {
+      if (document.status !== "approved") return;
       window.open(document.file_path, "_blank");
     },
     async removeFavorite(document) {

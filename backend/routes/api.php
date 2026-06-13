@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\FolderController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\UserController;
 
 Route::post('/login', [AuthController::class, 'login']);
@@ -14,8 +16,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/me/avatar', [AuthController::class, 'uploadAvatar']);
+    Route::get('/settings', [SettingController::class, 'show']);
+    Route::patch('/me/profile', [SettingController::class, 'updateProfile']);
+    Route::patch('/me/settings', [SettingController::class, 'updateSettings']);
+    Route::patch('/me/password', [SettingController::class, 'updatePassword']);
 
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::patch('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+    Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
 
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/documents/metadata', [DocumentController::class, 'metadata']);
@@ -29,6 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('role:admin,editor')->group(function () {
         Route::post('/documents', [DocumentController::class, 'store']);
+        Route::post('/documents/{document}/update-file', [DocumentController::class, 'updateFile']);
         Route::post('/folders', [FolderController::class, 'store']);
         Route::delete('/folders/{folder}', [FolderController::class, 'destroy']);
     });

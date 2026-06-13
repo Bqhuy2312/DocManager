@@ -15,6 +15,7 @@
             class="form-control"
             id="email"
             v-model="email"
+            :disabled="requiresTwoFactor"
             required
           />
         </div>
@@ -25,11 +26,35 @@
             class="form-control"
             id="password"
             v-model="password"
+            :disabled="requiresTwoFactor"
             required
           />
         </div>
+        <div v-if="requiresTwoFactor" class="mb-3">
+          <label for="two-factor-code" class="form-label">Mã xác thực 2FA</label>
+          <input
+            type="text"
+            inputmode="numeric"
+            maxlength="6"
+            class="form-control"
+            id="two-factor-code"
+            v-model.trim="twoFactorCode"
+            placeholder="Nhập 6 số"
+            required
+          />
+          <small class="text-muted">Nhập mã bảo mật 6 số bạn đã đặt trong trang cài đặt.</small>
+        </div>
         <button type="submit" class="btn btn-primary w-100" :disabled="loading">
-          {{ loading ? "Đang đăng nhập..." : "Đăng nhập" }}
+          {{ loading ? "Đang đăng nhập..." : (requiresTwoFactor ? "Xác nhận 2FA" : "Đăng nhập") }}
+        </button>
+        <button
+          v-if="requiresTwoFactor"
+          type="button"
+          class="btn btn-outline-secondary w-100 mt-2"
+          :disabled="loading"
+          @click="resetTwoFactorStep"
+        >
+          Nhập lại email/mật khẩu
         </button>
       </form>
     </div>
@@ -44,6 +69,8 @@ export default {
     return {
       email: "",
       password: "",
+      twoFactorCode: "",
+      requiresTwoFactor: false,
       error: "",
       loading: false,
     };
@@ -53,15 +80,27 @@ export default {
       this.error = "";
       this.loading = true;
       try {
-        const data = await login(this.email, this.password);
+        const data = await login(this.email, this.password, this.twoFactorCode);
         localStorage.setItem("user", JSON.stringify(data.user));
         this.$router.push("/dashboard");
       } catch (err) {
-        this.error =
-          err.response?.data?.message || "Lỗi đăng nhập. Vui lòng thử lại.";
+        if (err.response?.data?.requires_2fa) {
+          this.requiresTwoFactor = true;
+          this.error = err.response?.status === 423
+            ? "Tài khoản đã bật 2FA. Vui lòng nhập mã xác thực."
+            : err.response?.data?.message || "Mã xác thực không đúng.";
+          return;
+        }
+
+        this.error = err.response?.data?.message || "Lỗi đăng nhập. Vui lòng thử lại.";
       } finally {
         this.loading = false;
       }
+    },
+    resetTwoFactorStep() {
+      this.requiresTwoFactor = false;
+      this.twoFactorCode = "";
+      this.error = "";
     },
   },
 };
@@ -85,5 +124,4 @@ export default {
   width: 100%;
   max-width: 360px;
 }
-
 </style>

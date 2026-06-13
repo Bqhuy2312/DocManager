@@ -3,7 +3,7 @@
     <div class="page-heading">
       <div>
         <h1 class="mb-1"><i class="fas fa-clipboard-check me-2"></i>Phê Duyệt Tài Liệu</h1>
-        <p class="text-muted mb-0">Kiểm tra tài liệu đã phê duyệt và tài liệu đang chờ phê duyệt.</p>
+        <p class="text-muted mb-0">Kiểm tra tài liệu đã phê duyệt, đã từ chối và tài liệu đang chờ phê duyệt.</p>
       </div>
       <div class="summary-box">
         <strong>{{ documents.length }}</strong>
@@ -96,7 +96,7 @@
                 </button>
               </div>
 
-              <button v-else class="btn btn-outline-success btn-sm" @click.stop="download(document)">
+              <button v-else-if="document.status === 'approved'" class="btn btn-outline-success btn-sm" @click.stop="download(document)">
                 <i class="fas fa-download"></i>
                 Tải xuống
               </button>
@@ -134,6 +134,7 @@ export default {
       statuses: [
         { value: "pending", label: "Chờ phê duyệt", icon: "fas fa-clock" },
         { value: "approved", label: "Đã phê duyệt", icon: "fas fa-check-circle" },
+        { value: "rejected", label: "Đã từ chối", icon: "fas fa-circle-xmark" },
       ],
     };
   },
@@ -167,6 +168,7 @@ export default {
       this.$router.push(`/documents/${id}`);
     },
     download(document) {
+      if (document.status !== "approved") return;
       window.open(document.file_path, "_blank");
     },
     async setApproval(document, status) {
@@ -199,7 +201,7 @@ export default {
       return {
         approved: "Đã phê duyệt",
         pending: "Chờ phê duyệt",
-        rejected: "Từ chối",
+        rejected: "Đã từ chối",
         draft: "Bản nháp",
       }[status] || status;
     },

@@ -2,10 +2,14 @@
   <div class="container-fluid py-4">
     <h1 class="mb-4"><i class="fas fa-cog"></i> Cài Đặt</h1>
 
-    <div class="row">
+    <div v-if="loading" class="card">
+      <div class="card-body text-muted">Đang tải cài đặt...</div>
+    </div>
+
+    <div v-else class="row">
       <div class="col-md-3">
         <div class="list-group">
-          <button type="button" class="list-group-item list-group-item-action" 
+          <button type="button" class="list-group-item list-group-item-action"
                   :class="{ active: activeTab === 'profile' }"
                   @click="activeTab = 'profile'">
             <i class="fas fa-user"></i> Hồ sơ
@@ -51,7 +55,7 @@
               <div class="row mb-3">
                 <div class="col-md-6">
                   <label class="form-label">Tên đầy đủ</label>
-                  <input type="text" class="form-control" v-model="profile.fullName">
+                  <input type="text" class="form-control" v-model.trim="profile.fullName" :disabled="savingProfile">
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Email</label>
@@ -61,18 +65,20 @@
               <div class="row mb-3">
                 <div class="col-md-6">
                   <label class="form-label">Chức vụ</label>
-                  <input type="text" class="form-control" v-model="profile.position">
+                  <input type="text" class="form-control" v-model.trim="profile.position" :disabled="savingProfile">
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Phòng ban</label>
-                  <input type="text" class="form-control" v-model="profile.department">
+                  <input type="text" class="form-control" v-model="profile.department" disabled>
                 </div>
               </div>
               <div class="mb-3">
                 <label class="form-label">Vai trò</label>
                 <input type="text" class="form-control" v-model="profile.role" disabled>
               </div>
-              <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Lưu thay đổi</button>
+              <button type="submit" class="btn btn-primary" :disabled="savingProfile">
+                <i class="fas fa-save"></i> {{ savingProfile ? 'Đang lưu...' : 'Lưu thay đổi' }}
+              </button>
             </form>
           </div>
         </div>
@@ -86,32 +92,34 @@
             <form @submit.prevent="saveGeneral">
               <div class="mb-3">
                 <label class="form-label"><i class="fas fa-globe"></i> Ngôn ngữ</label>
-                <select class="form-select" v-model="settings.language">
+                <select class="form-select" v-model="settings.language" :disabled="savingGeneral">
                   <option value="vi">Tiếng Việt</option>
                   <option value="en">English</option>
                 </select>
               </div>
               <div class="mb-3">
                 <div class="form-check form-switch">
-                  <input class="form-check-input" type="checkbox" v-model="settings.autoSave">
+                  <input class="form-check-input" type="checkbox" v-model="settings.autoSave" :disabled="savingGeneral">
                   <label class="form-check-label"><i class="fas fa-save"></i> Tự động lưu</label>
                 </div>
               </div>
               <div class="mb-3">
                 <div class="form-check form-switch">
-                  <input class="form-check-input" type="checkbox" v-model="settings.darkMode">
+                  <input class="form-check-input" type="checkbox" v-model="settings.darkMode" :disabled="savingGeneral">
                   <label class="form-check-label"><i class="fas fa-moon"></i> Chế độ tối</label>
                 </div>
               </div>
               <div class="mb-3">
                 <label class="form-label"><i class="fas fa-clock"></i> Múi giờ</label>
-                <select class="form-select" v-model="settings.timezone">
+                <select class="form-select" v-model="settings.timezone" :disabled="savingGeneral">
                   <option value="UTC+7">UTC+7 (Việt Nam)</option>
                   <option value="UTC+8">UTC+8</option>
                   <option value="UTC+9">UTC+9 (Tokyo)</option>
                 </select>
               </div>
-              <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Lưu thay đổi</button>
+              <button type="submit" class="btn btn-primary" :disabled="savingGeneral">
+                <i class="fas fa-save"></i> {{ savingGeneral ? 'Đang lưu...' : 'Lưu thay đổi' }}
+              </button>
             </form>
           </div>
         </div>
@@ -123,18 +131,20 @@
           </div>
           <div class="card-body">
             <form @submit.prevent="saveNotification">
-              <h6 class="mb-3"><i class="fas fa-envelope"></i> Email</h6>
-              <div class="mb-3">
-                <div class="form-check form-switch">
-                  <input class="form-check-input" type="checkbox" v-model="notifications.emailEnabled">
-                  <label class="form-check-label">Bật thông báo email</label>
+              <template v-if="false">
+                <h6 class="mb-3"><i class="fas fa-envelope"></i> Email</h6>
+                <div class="mb-3">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" v-model="notifications.emailEnabled" :disabled="savingNotification">
+                    <label class="form-check-label">Bật thông báo email</label>
+                  </div>
                 </div>
-              </div>
+              </template>
 
               <h6 class="mb-3"><i class="fas fa-mobile"></i> Trong ứng dụng</h6>
               <div class="mb-3">
                 <div class="form-check form-switch">
-                  <input class="form-check-input" type="checkbox" v-model="notifications.inAppEnabled">
+                  <input class="form-check-input" type="checkbox" v-model="notifications.inAppEnabled" :disabled="savingNotification">
                   <label class="form-check-label">Bật thông báo trong ứng dụng</label>
                 </div>
               </div>
@@ -142,23 +152,25 @@
               <h6 class="mb-3">Loại thông báo</h6>
               <div class="mb-2">
                 <div class="form-check">
-                  <input class="form-check-input" type="checkbox" v-model="notifications.newDocument" id="notif1">
+                  <input class="form-check-input" type="checkbox" v-model="notifications.newDocument" id="notif1" :disabled="savingNotification">
                   <label class="form-check-label" for="notif1">Tài liệu mới được tải lên</label>
                 </div>
               </div>
               <div class="mb-2">
                 <div class="form-check">
-                  <input class="form-check-input" type="checkbox" v-model="notifications.documentUpdated" id="notif2">
+                  <input class="form-check-input" type="checkbox" v-model="notifications.documentUpdated" id="notif2" :disabled="savingNotification">
                   <label class="form-check-label" for="notif2">Tài liệu được cập nhật</label>
                 </div>
               </div>
               <div class="mb-2">
                 <div class="form-check">
-                  <input class="form-check-input" type="checkbox" v-model="notifications.approvalNeeded" id="notif3">
+                  <input class="form-check-input" type="checkbox" v-model="notifications.approvalNeeded" id="notif3" :disabled="savingNotification">
                   <label class="form-check-label" for="notif3">Cần phê duyệt tài liệu</label>
                 </div>
               </div>
-              <button type="submit" class="btn btn-primary mt-3"><i class="fas fa-save"></i> Lưu thay đổi</button>
+              <button type="submit" class="btn btn-primary mt-3" :disabled="savingNotification">
+                <i class="fas fa-save"></i> {{ savingNotification ? 'Đang lưu...' : 'Lưu thay đổi' }}
+              </button>
             </form>
           </div>
         </div>
@@ -173,17 +185,19 @@
             <form @submit.prevent="changePassword" class="mb-4">
               <div class="mb-3">
                 <label class="form-label">Mật khẩu hiện tại</label>
-                <input type="password" class="form-control" v-model="password.current">
+                <input type="password" class="form-control" v-model="password.current" :disabled="savingPassword">
               </div>
               <div class="mb-3">
                 <label class="form-label">Mật khẩu mới</label>
-                <input type="password" class="form-control" v-model="password.new">
+                <input type="password" class="form-control" v-model="password.new" :disabled="savingPassword">
               </div>
               <div class="mb-3">
                 <label class="form-label">Xác nhận mật khẩu mới</label>
-                <input type="password" class="form-control" v-model="password.confirm">
+                <input type="password" class="form-control" v-model="password.confirm" :disabled="savingPassword">
               </div>
-              <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Đổi mật khẩu</button>
+              <button type="submit" class="btn btn-primary" :disabled="savingPassword">
+                <i class="fas fa-check"></i> {{ savingPassword ? 'Đang đổi...' : 'Đổi mật khẩu' }}
+              </button>
             </form>
 
             <hr>
@@ -191,10 +205,26 @@
             <h6 class="mb-3"><i class="fas fa-lock"></i> Xác thực hai yếu tố (2FA)</h6>
             <div class="mb-3">
               <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" v-model="security.twoFAEnabled">
+                <input class="form-check-input" type="checkbox" v-model="security.twoFAEnabled" :disabled="savingSecurity">
                 <label class="form-check-label">Bật xác thực hai yếu tố</label>
               </div>
               <small class="text-muted">Tăng cường bảo mật tài khoản với mã xác thực</small>
+              <div v-if="security.twoFAEnabled" class="mt-3">
+                <label class="form-label">Mã bảo mật 6 số</label>
+                <input
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="6"
+                  class="form-control"
+                  v-model.trim="security.twoFactorPin"
+                  :disabled="savingSecurity"
+                  placeholder="Nhập 6 số để đăng nhập lần sau"
+                >
+                <small class="text-muted">Bạn sẽ cần nhập mã này sau khi nhập đúng email và mật khẩu.</small>
+              </div>
+              <button type="button" class="btn btn-primary mt-3" :disabled="savingSecurity" @click="saveSecurity">
+                <i class="fas fa-save"></i> {{ savingSecurity ? 'Đang lưu...' : 'Lưu bảo mật' }}
+              </button>
             </div>
           </div>
         </div>
@@ -206,89 +236,275 @@
 <script>
 import { uploadAvatar } from "@/services/authService";
 import { notify } from "@/services/notificationService";
+import { applyAppSettings } from "@/services/appSettingsService";
+import {
+  getSettings,
+  updatePassword,
+  updateProfile,
+  updateSettings,
+} from "@/services/settingsService";
 
 export default {
-  name: 'Settings',
+  name: "Settings",
   data() {
     return {
-      activeTab: 'profile',
+      activeTab: "profile",
       currentUser: this.getStoredUser(),
+      loading: true,
       avatarUploading: false,
-      avatarError: '',
+      avatarError: "",
+      savingProfile: false,
+      savingGeneral: false,
+      savingNotification: false,
+      savingPassword: false,
+      savingSecurity: false,
       profile: {
-        fullName: 'Nguyễn Văn A',
-        email: 'admin@demo.com',
-        position: 'Quản lý Hệ thống',
-        department: 'CNTT',
-        role: 'admin'
+        fullName: "",
+        email: "",
+        position: "",
+        department: "",
+        role: "",
       },
       settings: {
-        language: 'vi',
+        language: "vi",
         autoSave: true,
         darkMode: false,
-        timezone: 'UTC+7'
+        timezone: "UTC+7",
       },
       notifications: {
         emailEnabled: true,
         inAppEnabled: true,
         newDocument: true,
         documentUpdated: true,
-        approvalNeeded: true
+        approvalNeeded: true,
       },
       password: {
-        current: '',
-        new: '',
-        confirm: ''
+        current: "",
+        new: "",
+        confirm: "",
       },
       security: {
-        twoFAEnabled: false
-      }
-    }
+        twoFAEnabled: false,
+        twoFactorPin: "",
+      },
+    };
+  },
+  mounted() {
+    this.loadSettings();
   },
   methods: {
     getStoredUser() {
       try {
-        return JSON.parse(localStorage.getItem('user'))
+        return JSON.parse(localStorage.getItem("user"));
       } catch {
-        return null
+        return null;
+      }
+    },
+    roleLabel(role) {
+      const labels = {
+        admin: "Admin - Quản trị viên",
+        editor: "Editor - Biên tập viên",
+        viewer: "Viewer - Người xem",
+      };
+      return labels[role] || role || "";
+    },
+    applyUser(user) {
+      this.currentUser = user;
+      this.profile = {
+        fullName: user.full_name || "",
+        email: user.email || "",
+        position: user.position || this.roleLabel(user.role),
+        department: user.department?.name || "Chưa có phòng ban",
+        role: this.roleLabel(user.role),
+      };
+      localStorage.setItem("user", JSON.stringify(user));
+      window.dispatchEvent(new Event("user-updated"));
+    },
+    applySettings(settings) {
+      const appSettings = applyAppSettings(settings);
+      this.settings = {
+        language: appSettings.language || "vi",
+        autoSave: Boolean(appSettings.auto_save),
+        darkMode: Boolean(appSettings.dark_mode),
+        timezone: appSettings.timezone || "UTC+7",
+      };
+      this.notifications = {
+        emailEnabled: Boolean(appSettings.email_enabled),
+        inAppEnabled: Boolean(appSettings.in_app_enabled),
+        newDocument: Boolean(appSettings.notify_upload),
+        documentUpdated: Boolean(appSettings.notify_edit),
+        approvalNeeded: Boolean(appSettings.notify_approve),
+      };
+      this.security.twoFAEnabled = Boolean(appSettings.two_factor_enabled);
+      this.security.twoFactorPin = "";
+    },
+    async loadSettings() {
+      this.loading = true;
+      try {
+        const data = await getSettings();
+        this.applyUser(data.user);
+        this.applySettings(data.settings);
+      } catch (error) {
+        notify({
+          title: "Không thể tải cài đặt",
+          message: error.response?.data?.message || "Vui lòng thử lại sau.",
+          type: "danger",
+        });
+      } finally {
+        this.loading = false;
       }
     },
     async changeAvatar(event) {
-      const file = event.target.files[0]
-      if (!file) return
+      const file = event.target.files[0];
+      if (!file) return;
 
-      this.avatarUploading = true
-      this.avatarError = ''
+      this.avatarUploading = true;
+      this.avatarError = "";
       try {
-        this.currentUser = await uploadAvatar(file)
-        localStorage.setItem('user', JSON.stringify(this.currentUser))
-        window.dispatchEvent(new Event('user-updated'))
+        const user = await uploadAvatar(file);
+        this.applyUser({
+          ...this.currentUser,
+          ...user,
+          department: this.currentUser?.department,
+        });
+        notify({ title: "Đã cập nhật ảnh", message: "Ảnh đại diện đã được thay đổi." });
       } catch (error) {
-        this.avatarError = error.response?.data?.message || 'Không thể tải ảnh đại diện.'
+        this.avatarError = error.response?.data?.message || "Không thể tải ảnh đại diện.";
       } finally {
-        this.avatarUploading = false
-        event.target.value = ''
+        this.avatarUploading = false;
+        event.target.value = "";
       }
     },
-    saveProfile() {
-      notify({ title: 'Đã lưu hồ sơ', message: 'Thông tin hồ sơ đã được cập nhật.' })
+    async saveProfile() {
+      this.savingProfile = true;
+      try {
+        const user = await updateProfile({
+          full_name: this.profile.fullName,
+          position: this.profile.position,
+        });
+        this.applyUser(user);
+        notify({ title: "Đã lưu hồ sơ", message: "Thông tin hồ sơ đã được cập nhật." });
+      } catch (error) {
+        notify({
+          title: "Không thể lưu hồ sơ",
+          message: error.response?.data?.message || "Vui lòng kiểm tra lại thông tin.",
+          type: "danger",
+        });
+      } finally {
+        this.savingProfile = false;
+      }
     },
-    saveGeneral() {
-      notify({ title: 'Đã lưu cài đặt', message: 'Cài đặt chung đã được cập nhật.' })
+    settingsPayload(extra = {}) {
+      return {
+        language: this.settings.language,
+        auto_save: this.settings.autoSave,
+        dark_mode: this.settings.darkMode,
+        timezone: this.settings.timezone,
+        email_enabled: this.notifications.emailEnabled,
+        in_app_enabled: this.notifications.inAppEnabled,
+        notify_upload: this.notifications.newDocument,
+        notify_edit: this.notifications.documentUpdated,
+        notify_approve: this.notifications.approvalNeeded,
+        notify_system: this.notifications.inAppEnabled,
+        two_factor_enabled: this.security.twoFAEnabled,
+        two_factor_pin: this.security.twoFactorPin,
+        ...extra,
+      };
     },
-    saveNotification() {
-      notify({ title: 'Đã lưu thông báo', message: 'Cài đặt thông báo đã được cập nhật.' })
+    async saveGeneral() {
+      this.savingGeneral = true;
+      try {
+        const settings = await updateSettings(this.settingsPayload());
+        this.applySettings(settings);
+        notify({ title: "Đã lưu cài đặt", message: "Cài đặt chung đã được cập nhật." });
+      } catch (error) {
+        notify({
+          title: "Không thể lưu cài đặt",
+          message: error.response?.data?.message || "Vui lòng thử lại sau.",
+          type: "danger",
+        });
+      } finally {
+        this.savingGeneral = false;
+      }
     },
-    changePassword() {
+    async saveNotification() {
+      this.savingNotification = true;
+      try {
+        const settings = await updateSettings(this.settingsPayload());
+        this.applySettings(settings);
+        notify({ title: "Đã lưu thông báo", message: "Cài đặt thông báo đã được cập nhật." });
+      } catch (error) {
+        notify({
+          title: "Không thể lưu thông báo",
+          message: error.response?.data?.message || "Vui lòng thử lại sau.",
+          type: "danger",
+        });
+      } finally {
+        this.savingNotification = false;
+      }
+    },
+    async saveSecurity() {
+      if (this.security.twoFAEnabled && this.security.twoFactorPin && !/^\d{6}$/.test(this.security.twoFactorPin)) {
+        notify({
+          title: "Mã 2FA không hợp lệ",
+          message: "Mã bảo mật phải gồm đúng 6 chữ số.",
+          type: "danger",
+        });
+        return;
+      }
+
+      this.savingSecurity = true;
+      try {
+        const settings = await updateSettings(this.settingsPayload());
+        this.applySettings(settings);
+        notify({
+          title: "Đã lưu bảo mật",
+          message: this.security.twoFAEnabled
+            ? "Xác thực hai yếu tố đã được bật cho tài khoản."
+            : "Xác thực hai yếu tố đã được tắt.",
+        });
+      } catch (error) {
+        this.security.twoFAEnabled = !this.security.twoFAEnabled;
+        notify({
+          title: "Không thể lưu bảo mật",
+          message: error.response?.data?.message || "Vui lòng thử lại sau.",
+          type: "danger",
+        });
+      } finally {
+        this.savingSecurity = false;
+      }
+    },
+    async changePassword() {
       if (this.password.new !== this.password.confirm) {
-        notify({ title: 'Mật khẩu không khớp', message: 'Vui lòng kiểm tra lại mật khẩu xác nhận.', type: 'danger' })
-        return
+        notify({
+          title: "Mật khẩu không khớp",
+          message: "Vui lòng kiểm tra lại mật khẩu xác nhận.",
+          type: "danger",
+        });
+        return;
       }
-      notify({ title: 'Đã đổi mật khẩu', message: 'Mật khẩu của bạn đã được cập nhật.' })
-      this.password = { current: '', new: '', confirm: '' }
-    }
-  }
-}
+
+      this.savingPassword = true;
+      try {
+        await updatePassword({
+          current_password: this.password.current,
+          password: this.password.new,
+          password_confirmation: this.password.confirm,
+        });
+        notify({ title: "Đã đổi mật khẩu", message: "Mật khẩu của bạn đã được cập nhật." });
+        this.password = { current: "", new: "", confirm: "" };
+      } catch (error) {
+        notify({
+          title: "Không thể đổi mật khẩu",
+          message: error.response?.data?.message || "Vui lòng kiểm tra lại mật khẩu.",
+          type: "danger",
+        });
+      } finally {
+        this.savingPassword = false;
+      }
+    },
+  },
+};
 </script>
 
 <style scoped>

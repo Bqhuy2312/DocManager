@@ -144,7 +144,7 @@
                 </div>
 
                 <div>
-                  <button class="btn btn-outline-success btn-sm" @click.stop="download(document)">
+                  <button v-if="document.status === 'approved'" class="btn btn-outline-success btn-sm" @click.stop="download(document)">
                     <i class="fas fa-download"></i>
                     Tải xuống
                   </button>
@@ -265,6 +265,7 @@ export default {
       this.$router.push(`/documents/${id}`);
     },
     download(document) {
+      if (document.status !== "approved") return;
       window.open(document.file_path, "_blank");
     },
     async toggleFavorite(document) {

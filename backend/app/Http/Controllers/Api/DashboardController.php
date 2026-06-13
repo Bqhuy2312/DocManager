@@ -15,8 +15,8 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
-        $visibleDocuments = $this->visibleDocuments($request);
-        $recentDocuments = (clone $visibleDocuments)
+        $approvedDocuments = Document::query()->where('status', 'approved');
+        $recentDocuments = (clone $approvedDocuments)
             ->with(['folder.parent', 'creator.department', 'tags'])
             ->withExists([
                 'favoritedBy as is_favorite' => fn ($query) => $query->where('user_id', $user->id),
@@ -47,11 +47,11 @@ class DashboardController extends Controller
 
         return response()->json([
             'stats' => [
-                'documents' => (clone $visibleDocuments)->count(),
+                'documents' => (clone $approvedDocuments)->count(),
                 'folders' => Folder::query()->count(),
                 'favorites' => $user->favorites()->where('status', 'approved')->count(),
                 'pending' => $pendingQuery->count(),
-                'recent' => (clone $visibleDocuments)->where('updated_at', '>=', now()->subDays(7))->count(),
+                'recent' => (clone $approvedDocuments)->where('updated_at', '>=', now()->subDays(7))->count(),
             ],
             'recent_documents' => $recentDocuments,
             'favorite_documents' => $favoriteDocuments,
@@ -62,22 +62,6 @@ class DashboardController extends Controller
                 ->get()
                 ->map(fn (ActivityLog $activity) => $this->formatActivity($activity)),
         ]);
-    }
-
-    private function visibleDocuments(Request $request)
-    {
-        $user = $request->user();
-
-        return Document::query()
-            ->when($user->role === 'admin', fn ($query) => $query)
-            ->when($user->role === 'viewer', fn ($query) => $query->where('status', 'approved'))
-            ->when($user->role === 'editor', function ($query) use ($user): void {
-                $query->where(function ($query) use ($user): void {
-                    $query
-                        ->where('status', 'approved')
-                        ->orWhere('created_by', $user->id);
-                });
-            });
     }
 
     private function formatDocument(Document $document): array

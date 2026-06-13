@@ -30,6 +30,11 @@ export const approveDocument = async (id, status) => {
   return response.data;
 };
 
+export const updateDocumentFile = async (id, formData) => {
+  const response = await api.post(`/documents/${id}/update-file`, formData);
+  return response.data;
+};
+
 export const toggleFavoriteDocument = async (id) => {
   const response = await api.post(`/documents/${id}/favorite`);
   return response.data;
