@@ -73,6 +73,7 @@ class DashboardController extends Controller
             'category' => $document->folder?->name,
             'folder' => $document->folder?->parent?->name,
             'author' => $document->creator?->full_name,
+            'department' => $document->creator?->department?->name,
             'status' => $document->status,
             'is_favorite' => (bool) ($document->is_favorite ?? false),
             'file_size' => $document->file_size,

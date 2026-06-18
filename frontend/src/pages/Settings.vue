@@ -211,15 +211,25 @@
               <small class="text-muted">Tăng cường bảo mật tài khoản với mã xác thực</small>
               <div v-if="security.twoFAEnabled" class="mt-3">
                 <label class="form-label">Mã bảo mật 6 số</label>
+                <div class="two-factor-entry" @click="$refs.securityTwoFactorInput?.focus()">
+                  <span
+                    v-for="index in 6"
+                    :key="index"
+                    class="two-factor-dot"
+                    :class="{ filled: security.twoFactorPin.length >= index }"
+                  ></span>
                 <input
-                  type="text"
+                  ref="securityTwoFactorInput"
+                  type="password"
                   inputmode="numeric"
                   maxlength="6"
-                  class="form-control"
+                  class="two-factor-hidden"
                   v-model.trim="security.twoFactorPin"
                   :disabled="savingSecurity"
                   placeholder="Nhập 6 số để đăng nhập lần sau"
+                  @input="updateSecurityTwoFactorPin"
                 >
+                </div>
                 <small class="text-muted">Bạn sẽ cần nhập mã này sau khi nhập đúng email và mật khẩu.</small>
               </div>
               <button type="button" class="btn btn-primary mt-3" :disabled="savingSecurity" @click="saveSecurity">
@@ -443,6 +453,10 @@ export default {
         this.savingNotification = false;
       }
     },
+    updateSecurityTwoFactorPin(event) {
+      this.security.twoFactorPin = event.target.value.replace(/\D/g, "").slice(0, 6);
+      event.target.value = this.security.twoFactorPin;
+    },
     async saveSecurity() {
       if (this.security.twoFAEnabled && this.security.twoFactorPin && !/^\d{6}$/.test(this.security.twoFactorPin)) {
         notify({
@@ -536,5 +550,38 @@ export default {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.two-factor-entry {
+  position: relative;
+  display: inline-flex;
+  gap: 10px;
+  padding: 8px 0;
+  cursor: text;
+}
+
+.two-factor-dot {
+  width: 22px;
+  height: 22px;
+  border: 2px solid #171717;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.two-factor-dot.filled {
+  background: #171717;
+  transform: scale(0.94);
+}
+
+.two-factor-hidden {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  opacity: 0;
+  cursor: text;
 }
 </style>

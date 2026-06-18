@@ -29,7 +29,7 @@
         </button>
 
         <div v-if="isMenuOpen" class="tree-menu-popover" @click.stop>
-          <button type="button" @click="$emit('add-child', folder)">
+          <button v-if="canAddChild" type="button" @click="$emit('add-child', folder)">
             <i class="fas fa-folder-plus me-2"></i>Thêm thư mục con
           </button>
           <button type="button" class="danger" @click="$emit('remove', folder)">
@@ -83,6 +83,9 @@ export default {
     },
     documentCount() {
       return this.documentCounts[this.folder.id] || 0;
+    },
+    canAddChild() {
+      return !this.folder.parent_id;
     },
   },
 };

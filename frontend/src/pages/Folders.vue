@@ -85,7 +85,7 @@
                 </button>
 
                 <div v-if="openMenuFolderId === child.id" class="subfolder-popover" @click.stop>
-                  <button type="button" @click="openCreateModal(child)">
+                  <button v-if="canAddChild(child)" type="button" @click="openCreateModal(child)">
                     <i class="fas fa-folder-plus me-2"></i>Thêm thư mục con
                   </button>
                   <button type="button" class="danger" @click="removeFolder(child)">
@@ -151,7 +151,9 @@
 
                   <div class="card-footer bg-white d-flex justify-content-between align-items-center">
                     <div class="favorite-document-meta">
-                      <span><i class="fas fa-clock me-1"></i>Thời gian: {{ formatDateTime(document.updated_at) }}</span>
+                      <span><i class="fas fa-user me-1"></i>Người đăng: {{ document.author || "Không rõ" }}</span>
+                      <span><i class="fas fa-building me-1"></i>Phòng ban: {{ document.department || "Chưa có phòng ban" }}</span>
+                      <span><i class="fas fa-clock me-1"></i>Cập nhật: {{ formatDateTime(document.updated_at) }}</span>
                       <span><i class="fas fa-weight-hanging me-1"></i>Kích thước: {{ formatFileSize(document.file_size) }}</span>
                       <span><i class="fas fa-upload me-1"></i>Tải lên: {{ formatDate(document.created_at) }}</span>
                     </div>
@@ -333,6 +335,9 @@ export default {
     },
     documentCount(folderId) {
       return this.documentCounts[folderId] || 0;
+    },
+    canAddChild(folder) {
+      return !folder?.parent_id;
     },
     toggleFolder(id) {
       this.expandedIds = this.expandedIds.includes(id)

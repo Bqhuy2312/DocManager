@@ -5,8 +5,8 @@
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
     <div v-if="success" class="alert alert-success">{{ success }}</div>
 
-    <div class="row">
-      <div class="col-lg-8">
+    <div class="upload-form-shell">
+      <div class="upload-form-column">
         <div class="card">
           <div class="card-body">
             <form @submit.prevent="submitForm">
@@ -95,16 +95,6 @@
                 {{ submitting ? "Đang tải lên Cloudinary..." : "Tải lên" }}
               </button>
             </form>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-lg-4 mt-3 mt-lg-0">
-        <div class="card">
-          <div class="card-header"><strong>Quy trình</strong></div>
-          <div class="card-body">
-            <p>Tài liệu được lưu trên Cloudinary và URL được ghi vào <code>file_path</code>.</p>
-            <p class="mb-0">Sau khi tải lên, tài liệu có trạng thái chờ phê duyệt.</p>
           </div>
         </div>
       </div>
@@ -273,6 +263,15 @@ export default {
 </script>
 
 <style scoped>
+.upload-form-shell {
+  display: flex;
+  justify-content: center;
+}
+
+.upload-form-column {
+  width: min(100%, 980px);
+}
+
 .parent-category-grid,
 .child-folder-grid {
   display: grid;

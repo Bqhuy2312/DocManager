@@ -65,10 +65,14 @@ export default {
 
 <style scoped>
 .sidebar {
+  position: sticky;
+  top: 56px;
+  align-self: flex-start;
+  overflow-y: auto;
   width: 200px;
   background-color: #fff;
   border-right: 1px solid #dededb;
-  min-height: calc(100vh - 56px);
+  height: calc(100vh - 56px);
   padding: 16px 10px;
 }
 

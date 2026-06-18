@@ -247,6 +247,9 @@ export default {
 
 <style scoped>
 .doc-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1030;
   min-height: 56px;
   background: #fff;
   border-bottom: 1px solid #dededb;
