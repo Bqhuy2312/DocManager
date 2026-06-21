@@ -120,7 +120,7 @@
 
 <script>
 import PaginationControls from "@/components/common/PaginationControls.vue";
-import { approveDocument, getDocuments } from "@/services/documentService";
+import { approveDocument, downloadDocumentFile, getDocuments } from "@/services/documentService";
 
 export default {
   name: "Approvals",
@@ -169,9 +169,13 @@ export default {
     viewDocument(id) {
       this.$router.push(`/documents/${id}`);
     },
-    download(document) {
+    async download(document) {
       if (document.status !== "approved") return;
-      window.open(document.file_path, "_blank");
+      try {
+        await downloadDocumentFile(document);
+      } catch (error) {
+        this.error = error.response?.data?.message || "Không thể tải xuống tài liệu.";
+      }
     },
     async setApproval(document, status) {
       try {

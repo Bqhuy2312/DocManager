@@ -109,7 +109,7 @@
 
 <script>
 import PaginationControls from "@/components/common/PaginationControls.vue";
-import { getDocuments, toggleFavoriteDocument } from "@/services/documentService";
+import { downloadDocumentFile, getDocuments, toggleFavoriteDocument } from "@/services/documentService";
 
 export default {
   name: "AllDocuments",
@@ -180,9 +180,13 @@ export default {
     viewDocument(id) {
       this.$router.push(`/documents/${id}`);
     },
-    downloadDocument(document) {
+    async downloadDocument(document) {
       if (document.status !== "approved") return;
-      window.open(document.file_path, "_blank");
+      try {
+        await downloadDocumentFile(document);
+      } catch (error) {
+        this.error = error.response?.data?.message || "Không thể tải xuống tài liệu.";
+      }
     },
     async toggleFavorite(document) {
       try {

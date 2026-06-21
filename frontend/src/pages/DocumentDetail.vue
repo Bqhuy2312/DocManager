@@ -163,6 +163,7 @@
 import {
   approveDocument,
   deleteDocument,
+  downloadDocumentFile,
   getDocument,
   updateDocumentFile,
 } from "@/services/documentService";
@@ -295,9 +296,13 @@ export default {
         this.updating = false;
       }
     },
-    downloadDocument() {
+    async downloadDocument() {
       if (this.document.status !== "approved") return;
-      window.open(this.document.file_path, "_blank");
+      try {
+        await downloadDocumentFile(this.document);
+      } catch (error) {
+        this.error = error.response?.data?.message || "Không thể tải xuống tài liệu.";
+      }
     },
     async setApproval(status) {
       try {

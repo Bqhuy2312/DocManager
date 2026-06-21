@@ -10,6 +10,27 @@ export const getDocument = async (id) => {
   return response.data;
 };
 
+export const downloadDocumentFile = async (documentItem) => {
+  const response = await api.get(`/documents/${documentItem.id}/download`, {
+    responseType: "blob",
+  });
+
+  const contentType = response.headers["content-type"] || documentItem.mime_type || "application/octet-stream";
+  const blob = response.data instanceof Blob
+    ? response.data
+    : new Blob([response.data], { type: contentType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = documentItem.file_name || `${documentItem.title || "document"}`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  URL.revokeObjectURL(url);
+};
+
 export const getFavoriteDocuments = async () => {
   const response = await api.get("/favorites");
   return response.data;

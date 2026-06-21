@@ -235,6 +235,7 @@ import PaginationControls from "@/components/common/PaginationControls.vue";
 import {
   createFolder,
   deleteFolder,
+  downloadDocumentFile,
   getDocuments,
   getFolders,
   toggleFavoriteDocument,
@@ -391,9 +392,13 @@ export default {
         this.error = error.response?.data?.message || "Không thể xóa thư mục.";
       }
     },
-    download(document) {
+    async download(document) {
       if (document.status !== "approved") return;
-      window.open(document.file_path, "_blank");
+      try {
+        await downloadDocumentFile(document);
+      } catch (error) {
+        this.error = error.response?.data?.message || "Không thể tải xuống tài liệu.";
+      }
     },
     async toggleFavorite(document) {
       try {

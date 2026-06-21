@@ -176,7 +176,7 @@
 
 <script>
 import PaginationControls from "@/components/common/PaginationControls.vue";
-import { getDocuments, getFolders, toggleFavoriteDocument } from "@/services/documentService";
+import { downloadDocumentFile, getDocuments, getFolders, toggleFavoriteDocument } from "@/services/documentService";
 
 export default {
   name: "Categories",
@@ -266,9 +266,13 @@ export default {
     viewDocument(id) {
       this.$router.push(`/documents/${id}`);
     },
-    download(document) {
+    async download(document) {
       if (document.status !== "approved") return;
-      window.open(document.file_path, "_blank");
+      try {
+        await downloadDocumentFile(document);
+      } catch (error) {
+        this.error = error.response?.data?.message || "Không thể tải xuống tài liệu.";
+      }
     },
     async toggleFavorite(document) {
       try {
