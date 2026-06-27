@@ -92,7 +92,7 @@
               </div>
 
               <button type="submit" class="btn btn-primary btn-lg w-100" :disabled="submitting || !form.folderId">
-                {{ submitting ? "Đang tải lên Cloudinary..." : "Tải lên" }}
+                {{ submitting ? "Đang tải lên ..." : "Tải lên" }}
               </button>
             </form>
           </div>

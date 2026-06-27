@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use App\Services\CloudinaryService;
 use RuntimeException;
 
@@ -61,6 +62,25 @@ class AuthController extends Controller
             'token' => $token,
             'user' => $user
         ]);
+    }
+
+    public function guestLogin(Request $request)
+    {
+        $guest = User::create([
+            'full_name' => 'Người xem ' . now()->format('His'),
+            'email' => 'guest_' . Str::uuid() . '@guest.local',
+            'password' => Hash::make(Str::random(32)),
+            'role' => 'viewer',
+            'is_guest' => true,
+            'guest_expires_at' => now()->addDays(7),
+        ]);
+
+        $token = $guest->createToken('guest_token')->plainTextToken;
+
+        return response()->json([
+            'token' => $token,
+            'user' => $guest,
+        ], 201);
     }
 
     public function logout(Request $request)

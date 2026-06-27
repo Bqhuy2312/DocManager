@@ -5,7 +5,7 @@
     </button>
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
-    <p v-if="loading" class="text-muted">Đang tải thông tin thành viên...</p>
+    <Loading v-if="loading" type="detail" />
 
     <div v-else-if="member" class="member-detail-layout">
       <section class="member-profile">
@@ -106,11 +106,13 @@
 </template>
 
 <script>
+import Loading from "@/components/common/Loading.vue";
 import { deleteMember, getMember, getMembers, updateMember } from "@/services/memberService";
 import { confirmDialog, notify } from "@/services/notificationService";
 
 export default {
   name: "MemberDetail",
+  components: { Loading },
   data() {
     return {
       member: null,

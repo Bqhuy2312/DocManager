@@ -3,7 +3,7 @@
     <h1 class="mb-4"><i class="fas fa-star"></i> Tài Liệu Đánh Dấu</h1>
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
-    <p v-if="loading" class="text-muted">Đang tải tài liệu đánh dấu...</p>
+    <Loading v-if="loading" type="cards" :count="6" />
 
     <div v-else-if="favorites.length === 0" class="alert alert-info">
       Chưa có tài liệu đánh dấu nào.
@@ -96,11 +96,12 @@
 
 <script>
 import PaginationControls from "@/components/common/PaginationControls.vue";
+import Loading from "@/components/common/Loading.vue";
 import { downloadDocumentFile, getFavoriteDocuments, toggleFavoriteDocument } from "@/services/documentService";
 
 export default {
   name: "Favorites",
-  components: { PaginationControls },
+  components: { PaginationControls, Loading },
   data() {
     return {
       favorites: [],

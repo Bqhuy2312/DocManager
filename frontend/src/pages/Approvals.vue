@@ -26,7 +26,7 @@
       </button>
     </div>
 
-    <p v-if="loading" class="text-muted">Đang tải tài liệu...</p>
+    <Loading v-if="loading" type="cards" :count="6" />
     <div v-else-if="!documents.length" class="empty-state">
       <i class="far fa-folder-open"></i>
       <strong>Không có tài liệu</strong>
@@ -120,11 +120,12 @@
 
 <script>
 import PaginationControls from "@/components/common/PaginationControls.vue";
+import Loading from "@/components/common/Loading.vue";
 import { approveDocument, downloadDocumentFile, getDocuments } from "@/services/documentService";
 
 export default {
   name: "Approvals",
-  components: { PaginationControls },
+  components: { PaginationControls, Loading },
   data() {
     return {
       documents: [],

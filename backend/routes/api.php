@@ -12,7 +12,8 @@ use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\UserController;
 
 Route::post('/login', [AuthController::class, 'login']);
-Route::middleware('auth:sanctum')->group(function () {
+Route::post('/guest-login', [AuthController::class, 'guestLogin']);
+Route::middleware(['auth:sanctum', 'guest.active'])->group(function () {
 
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/me/avatar', [AuthController::class, 'uploadAvatar']);
@@ -41,6 +42,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/documents', [DocumentController::class, 'store']);
         Route::post('/documents/{document}/update-file', [DocumentController::class, 'updateFile']);
         Route::post('/folders', [FolderController::class, 'store']);
+        Route::patch('/folders/{folder}', [FolderController::class, 'update']);
         Route::delete('/folders/{folder}', [FolderController::class, 'destroy']);
     });
 

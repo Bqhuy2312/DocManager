@@ -45,6 +45,17 @@ class FolderController extends Controller
         return response()->json($folder->load('parent:id,name'), 201);
     }
 
+    public function update(Request $request, Folder $folder): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $folder->update($validated);
+
+        return response()->json($folder->fresh()->load('parent:id,name'));
+    }
+
     public function destroy(Folder $folder): JsonResponse
     {
         if ($folder->documents()->exists() || $folder->children()->exists()) {

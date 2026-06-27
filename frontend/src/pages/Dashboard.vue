@@ -46,7 +46,7 @@
         </router-link>
       </div>
 
-      <p v-if="loading" class="text-muted">Đang tải dữ liệu dashboard...</p>
+      <Loading v-if="loading" :type="activeTab === 'activity' ? 'list' : 'cards'" :count="3" />
 
       <template v-else-if="activeTab === 'activity'">
         <p v-if="!activities.length" class="text-muted">Chưa có hoạt động gần đây.</p>
@@ -149,11 +149,13 @@
 </template>
 
 <script>
+import Loading from "@/components/common/Loading.vue";
 import { getDashboard } from "@/services/dashboardService";
 import { toggleFavoriteDocument } from "@/services/documentService";
 
 export default {
   name: "Dashboard",
+  components: { Loading },
   data() {
     return {
       activeTab: "recent",

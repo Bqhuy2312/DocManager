@@ -25,12 +25,19 @@ class User extends Authenticatable
         'password',
         'role',
         'avatar',
-        'avatar_public_id'
+        'avatar_public_id',
+        'is_guest',
+        'guest_expires_at'
     ];
 
     protected $hidden = [
         'password',
         'avatar_public_id'
+    ];
+
+    protected $casts = [
+        'is_guest' => 'boolean',
+        'guest_expires_at' => 'datetime',
     ];
 
     public function department()

@@ -2,7 +2,7 @@
   <nav class="navbar navbar-expand-lg doc-navbar">
     <div class="container-fluid navbar-layout">
       <router-link to="/dashboard" class="navbar-brand">
-        <strong><i class="fas fa-file me-2"></i>DocManager</strong>
+        <strong><i class="fas fa-file me-2"></i>Hệ thống Quản lý Tài liệu Nội Bộ</strong>
       </router-link>
 
       <form class="navbar-search" @submit.prevent="submitSearch">

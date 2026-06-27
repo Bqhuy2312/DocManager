@@ -77,6 +77,20 @@
           {{ loading ? "Đang đăng nhập..." : (requiresTwoFactor ? "Xác nhận 2FA" : "Đăng nhập") }}
         </button>
 
+        <div v-if="!requiresTwoFactor" class="login-divider">
+          <span>hoặc</span>
+        </div>
+
+        <button
+          v-if="!requiresTwoFactor"
+          type="button"
+          class="guest-login-button"
+          :disabled="loading"
+          @click="handleGuestLogin"
+        >
+          <i class="far fa-eye me-2"></i>Đăng nhập với tư cách người xem
+        </button>
+
         <button
           v-if="requiresTwoFactor"
           type="button"
@@ -92,7 +106,7 @@
 </template>
 
 <script>
-import { login } from "@/services/authService";
+import { guestLogin, login } from "@/services/authService";
 
 export default {
   data() {
@@ -124,6 +138,20 @@ export default {
         }
 
         this.error = err.response?.data?.message || "Lỗi đăng nhập. Vui lòng thử lại.";
+      } finally {
+        this.loading = false;
+      }
+    },
+    async handleGuestLogin() {
+      this.error = "";
+      this.loading = true;
+
+      try {
+        const data = await guestLogin();
+        localStorage.setItem("user", JSON.stringify(data.user));
+        this.$router.push("/dashboard");
+      } catch (err) {
+        this.error = err.response?.data?.message || "Không thể đăng nhập với tư cách người xem.";
       } finally {
         this.loading = false;
       }
@@ -251,7 +279,8 @@ export default {
 }
 
 .login-submit,
-.login-secondary {
+.login-secondary,
+.guest-login-button {
   width: 100%;
   min-height: 50px;
   border-radius: 7px;
@@ -265,16 +294,46 @@ export default {
 }
 
 .login-submit:disabled,
-.login-secondary:disabled {
+.login-secondary:disabled,
+.guest-login-button:disabled {
   opacity: 0.65;
   cursor: not-allowed;
 }
 
-.login-secondary {
+.login-secondary,
+.guest-login-button {
   margin-top: 10px;
   border: 1px solid #dededb;
   background: #ffffff;
   color: #171717;
+}
+
+.guest-login-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.guest-login-button:hover {
+  border-color: #171717;
+}
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 8px;
+  color: #707070;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: #dededb;
 }
 
 .two-factor-entry {

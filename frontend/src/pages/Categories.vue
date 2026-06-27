@@ -1,5 +1,5 @@
 <template>
-  <div class="container-fluid py-4">
+  <div class="container-fluid py-4 categories-page">
     <div class="page-heading">
       <div>
         <span class="eyebrow">Thư viện nội bộ</span>
@@ -13,12 +13,12 @@
     </div>
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
-    <p v-if="loading" class="text-muted">Đang tải danh mục...</p>
+    <Loading v-if="loading" type="cards" :count="6" />
 
     <template v-else>
       <section class="category-nav">
         <button
-          v-for="category in parentCategories"
+          v-for="category in visibleParentCategories"
           :key="category.id"
           class="category-tab"
           :class="{ active: selectedParent?.id === category.id }"
@@ -32,6 +32,49 @@
           </span>
           <em>{{ documentsForTree(category).length }}</em>
         </button>
+
+        <div v-if="hiddenParentCategories.length" class="category-more">
+          <button
+            class="category-tab category-more-button"
+            type="button"
+            :class="{ active: showCategoryMenu }"
+            aria-label="Xem tất cả danh mục"
+            @click="showCategoryMenu = !showCategoryMenu"
+          >
+            <span class="category-tab-icon"><i class="fas fa-ellipsis-h"></i></span>
+            <span>
+              <strong>Thêm</strong>
+              <small>{{ parentCategories.length }} danh mục</small>
+            </span>
+            <em>{{ hiddenParentCategories.length }}</em>
+          </button>
+
+          <div v-if="showCategoryMenu" class="category-more-panel">
+            <div class="category-more-header">
+              <strong>Tất cả danh mục</strong>
+              <button type="button" aria-label="Đóng" @click="showCategoryMenu = false">
+                <i class="fas fa-xmark"></i>
+              </button>
+            </div>
+            <div class="category-more-grid">
+              <button
+                v-for="category in parentCategories"
+                :key="category.id"
+                type="button"
+                class="category-more-item"
+                :class="{ active: selectedParent?.id === category.id }"
+                @click="selectParent(category)"
+              >
+                <i class="fas fa-folder"></i>
+                <span>
+                  <strong>{{ category.name }}</strong>
+                  <small>{{ childCategoriesFor(category).length }} danh mục con</small>
+                </span>
+                <em>{{ documentsForTree(category).length }}</em>
+              </button>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section v-if="selectedParent" class="category-content">
@@ -176,17 +219,19 @@
 
 <script>
 import PaginationControls from "@/components/common/PaginationControls.vue";
+import Loading from "@/components/common/Loading.vue";
 import { downloadDocumentFile, getDocuments, getFolders, toggleFavoriteDocument } from "@/services/documentService";
 
 export default {
   name: "Categories",
-  components: { PaginationControls },
+  components: { PaginationControls, Loading },
   data() {
     return {
       parentCategories: [],
       documents: [],
       selectedParent: null,
       selectedChild: null,
+      showCategoryMenu: false,
       searchQuery: "",
       currentPage: 1,
       itemsPerPage: 15,
@@ -195,6 +240,12 @@ export default {
     };
   },
   computed: {
+    visibleParentCategories() {
+      return this.parentCategories.slice(0, 5);
+    },
+    hiddenParentCategories() {
+      return this.parentCategories.slice(5);
+    },
     childCategories() {
       return this.selectedParent ? this.childCategoriesFor(this.selectedParent) : [];
     },
@@ -235,6 +286,7 @@ export default {
     selectParent(category) {
       this.selectedParent = category;
       this.selectedChild = null;
+      this.showCategoryMenu = false;
       this.searchQuery = "";
       this.currentPage = 1;
     },
@@ -309,7 +361,14 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
   margin-bottom: 18px;
+}
+
+.categories-page {
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .eyebrow {
@@ -342,9 +401,14 @@ export default {
 .category-nav,
 .subcategory-nav {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  overflow-x: auto;
   padding: 4px 0 12px;
+  max-width: 100%;
+}
+
+.category-nav {
+  position: relative;
 }
 
 .subcategory-nav {
@@ -355,7 +419,7 @@ export default {
 .category-tab,
 .subcategory-tab {
   display: grid;
-  flex: 0 0 auto;
+  min-width: 0;
   align-items: center;
   gap: 8px;
   border: 1px solid #dededb;
@@ -366,12 +430,116 @@ export default {
 }
 
 .category-tab {
+  flex: 1 1 180px;
   grid-template-columns: auto minmax(105px, auto) auto;
+  max-width: 240px;
   padding: 8px 10px;
 }
 
+.category-more {
+  position: relative;
+  flex: 1 1 180px;
+  max-width: 240px;
+}
+
+.category-more .category-tab {
+  width: 100%;
+  max-width: 100%;
+}
+
+.category-more-button {
+  border-style: dashed;
+}
+
+.category-more-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 20;
+  width: min(620px, calc(100vw - 48px));
+  max-height: 420px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid #dededb;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 18px 42px rgba(23, 23, 23, 0.16);
+}
+
+.category-more-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.category-more-header button {
+  display: inline-grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid #dededb;
+  border-radius: 7px;
+  background: #fff;
+  color: #292929;
+}
+
+.category-more-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.category-more-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #dededb;
+  border-radius: 7px;
+  background: #fff;
+  color: #292929;
+  text-align: left;
+}
+
+.category-more-item:hover,
+.category-more-item.active {
+  border-color: #171717;
+}
+
+.category-more-item.active {
+  background: #171717;
+  color: #fff;
+}
+
+.category-more-item span {
+  display: grid;
+  min-width: 0;
+}
+
+.category-more-item strong {
+  overflow-wrap: anywhere;
+}
+
+.category-more-item small,
+.category-more-item em {
+  color: #707070;
+  font-size: 0.7rem;
+  font-style: normal;
+}
+
+.category-more-item.active small,
+.category-more-item.active em {
+  color: #cfcfcb;
+}
+
 .subcategory-tab {
+  flex: 0 1 auto;
   grid-template-columns: auto auto;
+  max-width: 220px;
   padding: 7px 10px;
   font-size: 0.86rem;
 }
@@ -396,6 +564,12 @@ export default {
 
 .category-tab span:not(.category-tab-icon) {
   display: grid;
+  min-width: 0;
+}
+
+.category-tab strong,
+.subcategory-tab {
+  overflow-wrap: anywhere;
 }
 
 .category-tab small,
@@ -412,6 +586,7 @@ export default {
 }
 
 .category-content {
+  max-width: 100%;
   overflow: hidden;
   border: 1px solid #dededb;
   border-radius: 8px;
@@ -423,19 +598,26 @@ export default {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  min-width: 0;
   padding: 16px;
   border-bottom: 1px solid #dededb;
+}
+
+.content-heading > div {
+  min-width: 0;
 }
 
 .breadcrumb-line {
   margin-bottom: 8px;
   color: #707070;
   font-size: 0.72rem;
+  overflow-wrap: anywhere;
 }
 
 .category-search {
   display: flex;
   width: min(300px, 100%);
+  min-width: 220px;
   height: 34px;
   align-items: center;
   gap: 8px;
@@ -454,6 +636,10 @@ export default {
 }
 
 .document-list {
+  width: 100%;
+  max-width: 100%;
+  margin-right: 0;
+  margin-left: 0;
   padding: 16px;
 }
 
@@ -544,6 +730,29 @@ export default {
   .content-heading {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .summary-box {
+    width: 100%;
+    text-align: left;
+  }
+
+  .category-tab,
+  .subcategory-tab,
+  .category-more {
+    flex-basis: 100%;
+    max-width: 100%;
+  }
+
+  .category-more-panel {
+    right: auto;
+    left: 0;
+    width: calc(100vw - 24px);
+  }
+
+  .category-search {
+    width: 100%;
+    min-width: 0;
   }
 }
 </style>

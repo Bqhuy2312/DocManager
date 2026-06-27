@@ -22,7 +22,7 @@
       </div>
     </div>
 
-    <p v-if="loading" class="text-muted">Đang tải tài liệu...</p>
+    <Loading v-if="loading" type="cards" :count="6" />
     <p v-else-if="!filteredDocuments.length" class="text-muted">Chưa có tài liệu phù hợp.</p>
 
     <div v-else class="row g-4">
@@ -109,11 +109,12 @@
 
 <script>
 import PaginationControls from "@/components/common/PaginationControls.vue";
+import Loading from "@/components/common/Loading.vue";
 import { downloadDocumentFile, getDocuments, toggleFavoriteDocument } from "@/services/documentService";
 
 export default {
   name: "AllDocuments",
-  components: { PaginationControls },
+  components: { PaginationControls, Loading },
   data() {
     return {
       documents: [],

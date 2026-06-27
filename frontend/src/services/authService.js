@@ -9,9 +9,16 @@ export const login = async (email, password, twoFactorCode = "") => {
   return response.data
 }
 
+export const guestLogin = async () => {
+  const response = await api.post('/guest-login')
+  localStorage.setItem('token', response.data.token)
+  return response.data
+}
+
 export const logout = async () => {
   await api.post('/logout')
   localStorage.removeItem('token')
+  localStorage.removeItem('user')
 }
 
 export const getCurrentUser = async () => {

@@ -1303,7 +1303,8 @@ body.theme-dark .preview-collapsed {
 }
 
 .login-submit,
-.login-secondary {
+.login-secondary,
+.guest-login-button {
   width: 100% !important;
   min-height: 50px !important;
   display: inline-flex !important;
@@ -1320,11 +1321,34 @@ body.theme-dark .preview-collapsed {
   color: #ffffff !important;
 }
 
-.login-secondary {
+.login-secondary,
+.guest-login-button {
   margin-top: 10px !important;
   border: 1px solid #dededb !important;
   background: #ffffff !important;
   color: #171717 !important;
+}
+
+.guest-login-button:hover {
+  border-color: #171717 !important;
+}
+
+.login-divider {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin: 18px 0 8px !important;
+  color: #707070 !important;
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: "" !important;
+  height: 1px !important;
+  flex: 1 !important;
+  background: #dededb !important;
 }
 
 .login-alert {

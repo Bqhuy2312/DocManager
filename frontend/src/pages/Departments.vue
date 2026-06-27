@@ -27,7 +27,7 @@
       </select>
     </div>
 
-    <p v-if="loading" class="text-muted">Đang tải danh sách phòng ban...</p>
+    <Loading v-if="loading" type="cards" :count="6" />
     <p v-else-if="!filteredDepartments.length" class="text-muted">Không tìm thấy phòng ban phù hợp.</p>
 
     <div v-else class="row g-4">
@@ -91,6 +91,7 @@
 </template>
 
 <script>
+import Loading from "@/components/common/Loading.vue";
 import {
   createDepartment,
   deleteDepartment,
@@ -106,6 +107,7 @@ const emptyForm = () => ({
 
 export default {
   name: "Departments",
+  components: { Loading },
   data() {
     return {
       departments: [],

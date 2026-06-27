@@ -17,6 +17,7 @@ class UserController extends Controller
             'users' => User::query()
                 ->with('department:id,name')
                 ->withCount('documents')
+                ->where('is_guest', false)
                 ->orderBy('full_name')
                 ->get(),
             'departments' => Department::query()

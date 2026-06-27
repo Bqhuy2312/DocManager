@@ -8,7 +8,7 @@
     </div>
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
-    <p v-if="loading" class="text-muted">Đang tải cây thư mục...</p>
+    <Loading v-if="loading" type="folders" />
 
     <div v-else class="folder-layout" @click="closeFolderMenus">
       <aside class="tree-panel">
@@ -37,6 +37,7 @@
             @select="selectFolder"
             @toggle="toggleFolder"
             @remove="removeFolder"
+            @edit="openEditModal"
             @add-child="openCreateModal"
             @toggle-menu="toggleFolderMenu"
           />
@@ -87,6 +88,9 @@
                 <div v-if="openMenuFolderId === child.id" class="subfolder-popover" @click.stop>
                   <button v-if="canAddChild(child)" type="button" @click="openCreateModal(child)">
                     <i class="fas fa-folder-plus me-2"></i>Thêm thư mục con
+                  </button>
+                  <button type="button" @click="openEditModal(child)">
+                    <i class="fas fa-pen me-2"></i>Sửa tên thư mục
                   </button>
                   <button type="button" class="danger" @click="removeFolder(child)">
                     <i class="fas fa-trash me-2"></i>Xóa thư mục
@@ -226,11 +230,44 @@
         </div>
       </div>
     </Teleport>
+
+    <Teleport to="body">
+      <div v-if="showEditModal" class="create-modal-backdrop" @click.self="closeEditModal">
+        <div class="modal-dialog create-modal-dialog" @click.stop>
+          <div class="modal-content create-folder-modal">
+            <div class="modal-header create-folder-header">
+              <div class="create-folder-title">
+                <span class="create-folder-icon">
+                  <i class="fas fa-pen"></i>
+                </span>
+                <div>
+                  <h5 class="modal-title">Sửa tên thư mục</h5>
+                  <p class="mb-0 text-muted">Cập nhật tên thư mục cha hoặc thư mục con đã chọn.</p>
+                </div>
+              </div>
+              <button type="button" class="btn-close" aria-label="Đóng" @click="closeEditModal"></button>
+            </div>
+            <div class="modal-body create-folder-body">
+              <label class="form-label">Tên thư mục</label>
+              <div class="input-shell">
+                <i class="fas fa-folder"></i>
+                <input v-model="editFolderForm.name" type="text" placeholder="Nhập tên thư mục">
+              </div>
+            </div>
+            <div class="modal-footer create-folder-footer">
+              <button class="btn btn-light" @click="closeEditModal">Hủy</button>
+              <button class="btn btn-primary" @click="submitEditFolder">Lưu thay đổi</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script>
 import FolderTreeNode from "@/components/FolderTreeNode.vue";
+import Loading from "@/components/common/Loading.vue";
 import PaginationControls from "@/components/common/PaginationControls.vue";
 import {
   createFolder,
@@ -239,12 +276,13 @@ import {
   getDocuments,
   getFolders,
   toggleFavoriteDocument,
+  updateFolder,
 } from "@/services/documentService";
 import { confirmDialog, notify } from "@/services/notificationService";
 
 export default {
   name: "Folders",
-  components: { FolderTreeNode, PaginationControls },
+  components: { FolderTreeNode, Loading, PaginationControls },
   data() {
     return {
       folders: [],
@@ -253,6 +291,8 @@ export default {
       expandedIds: [],
       showCreateModal: false,
       newFolder: { name: "", parentId: "" },
+      showEditModal: false,
+      editFolderForm: { id: "", name: "" },
       openMenuFolderId: null,
       currentPage: 1,
       itemsPerPage: 15,
@@ -362,6 +402,15 @@ export default {
     closeCreateModal() {
       this.showCreateModal = false;
     },
+    openEditModal(folder) {
+      this.openMenuFolderId = null;
+      this.editFolderForm = { id: folder.id, name: folder.name };
+      this.showEditModal = true;
+    },
+    closeEditModal() {
+      this.showEditModal = false;
+      this.editFolderForm = { id: "", name: "" };
+    },
     async submitFolder() {
       if (!this.newFolder.name.trim()) return;
       try {
@@ -371,6 +420,18 @@ export default {
         this.expandAll();
       } catch (error) {
         this.error = error.response?.data?.message || "Không thể tạo thư mục.";
+      }
+    },
+    async submitEditFolder() {
+      if (!this.editFolderForm.name.trim()) return;
+      try {
+        await updateFolder(this.editFolderForm.id, { name: this.editFolderForm.name.trim() });
+        this.showEditModal = false;
+        await this.loadData();
+        this.expandAll();
+        notify({ title: "Đã cập nhật thư mục", message: "Tên thư mục đã được thay đổi." });
+      } catch (error) {
+        this.error = error.response?.data?.message || "Không thể cập nhật thư mục.";
       }
     },
     async removeFolder(folder) {
@@ -499,6 +560,7 @@ export default {
   position: relative;
   display: flex;
   min-width: 180px;
+  max-width: 100%;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -522,6 +584,7 @@ export default {
 .subfolder-main {
   display: flex;
   flex: 1;
+  min-width: 0;
   align-items: center;
   gap: 8px;
   padding: 9px 12px;
@@ -529,6 +592,8 @@ export default {
 }
 
 .subfolder-main span {
+  display: block;
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -537,6 +602,7 @@ export default {
 
 .document-count {
   display: inline-grid;
+  flex: 0 0 auto;
   min-width: 20px;
   height: 18px;
   place-items: center;
@@ -551,6 +617,7 @@ export default {
 
 .subfolder-menu {
   position: relative;
+  flex: 0 0 auto;
 }
 
 .subfolder-action {

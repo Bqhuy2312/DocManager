@@ -32,6 +32,9 @@
           <button v-if="canAddChild" type="button" @click="$emit('add-child', folder)">
             <i class="fas fa-folder-plus me-2"></i>Thêm thư mục con
           </button>
+          <button type="button" @click="$emit('edit', folder)">
+            <i class="fas fa-pen me-2"></i>Sửa tên thư mục
+          </button>
           <button type="button" class="danger" @click="$emit('remove', folder)">
             <i class="fas fa-trash me-2"></i>Xóa thư mục
           </button>
@@ -52,6 +55,7 @@
         @select="$emit('select', $event)"
         @toggle="$emit('toggle', $event)"
         @remove="$emit('remove', $event)"
+        @edit="$emit('edit', $event)"
         @add-child="$emit('add-child', $event)"
         @toggle-menu="$emit('toggle-menu', $event)"
       />
@@ -70,7 +74,7 @@ export default {
     openMenuFolderId: { type: String, default: null },
     documentCounts: { type: Object, required: true },
   },
-  emits: ["select", "toggle", "remove", "add-child", "toggle-menu"],
+  emits: ["select", "toggle", "remove", "edit", "add-child", "toggle-menu"],
   computed: {
     hasChildren() {
       return Boolean(this.folder.descendants?.length);
@@ -94,6 +98,8 @@ export default {
 <style scoped>
 .tree-row {
   display: flex;
+  width: 100%;
+  min-width: 0;
   min-height: 34px;
   align-items: center;
   gap: 2px;
@@ -128,13 +134,20 @@ export default {
 .tree-label {
   display: flex;
   flex: 1;
+  min-width: 0;
   align-items: center;
   gap: 6px;
   padding: 6px 2px;
   text-align: left;
 }
 
+.tree-label i {
+  flex: 0 0 auto;
+}
+
 .tree-label span {
+  display: block;
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -143,6 +156,7 @@ export default {
 
 .document-count {
   display: inline-grid;
+  flex: 0 0 auto;
   min-width: 20px;
   height: 18px;
   place-items: center;
@@ -157,6 +171,7 @@ export default {
 
 .tree-menu {
   position: relative;
+  flex: 0 0 auto;
 }
 
 .tree-action {

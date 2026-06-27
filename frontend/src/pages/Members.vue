@@ -52,7 +52,7 @@
       </select>
     </div>
 
-    <p v-if="loading" class="text-muted">Đang tải danh sách thành viên...</p>
+    <Loading v-if="loading" type="cards" :count="6" />
     <p v-else-if="!filteredMembers.length" class="text-muted">Không tìm thấy thành viên phù hợp.</p>
 
     <div v-else class="row g-4">
@@ -168,6 +168,7 @@
 
 <script>
 import PaginationControls from "@/components/common/PaginationControls.vue";
+import Loading from "@/components/common/Loading.vue";
 import { createMember, deleteMember, getMembers } from "@/services/memberService";
 import { confirmDialog, notify } from "@/services/notificationService";
 
@@ -181,7 +182,7 @@ const emptyMemberForm = () => ({
 
 export default {
   name: "Members",
-  components: { PaginationControls },
+  components: { PaginationControls, Loading },
   data() {
     return {
       members: [],

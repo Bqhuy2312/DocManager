@@ -5,7 +5,7 @@
     </button>
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
-    <p v-if="loading" class="text-muted">Đang tải tài liệu...</p>
+    <Loading v-if="loading" type="detail" />
 
     <div v-else-if="document" class="row">
       <div class="col-lg-8">
@@ -160,6 +160,7 @@
 </template>
 
 <script>
+import Loading from "@/components/common/Loading.vue";
 import {
   approveDocument,
   deleteDocument,
@@ -171,6 +172,7 @@ import { confirmDialog, notify } from "@/services/notificationService";
 
 export default {
   name: "DocumentDetail",
+  components: { Loading },
   data() {
     return {
       document: null,

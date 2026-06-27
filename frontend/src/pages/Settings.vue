@@ -2,9 +2,7 @@
   <div class="container-fluid py-4">
     <h1 class="mb-4"><i class="fas fa-cog"></i> Cài Đặt</h1>
 
-    <div v-if="loading" class="card">
-      <div class="card-body text-muted">Đang tải cài đặt...</div>
-    </div>
+    <Loading v-if="loading" type="settings" />
 
     <div v-else class="row">
       <div class="col-md-3">
@@ -244,6 +242,7 @@
 </template>
 
 <script>
+import Loading from "@/components/common/Loading.vue";
 import { uploadAvatar } from "@/services/authService";
 import { notify } from "@/services/notificationService";
 import { applyAppSettings } from "@/services/appSettingsService";
@@ -256,6 +255,7 @@ import {
 
 export default {
   name: "Settings",
+  components: { Loading },
   data() {
     return {
       activeTab: "profile",

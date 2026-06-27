@@ -80,6 +80,11 @@ export const createFolder = async (payload) => {
   return response.data;
 };
 
+export const updateFolder = async (id, payload) => {
+  const response = await api.patch(`/folders/${id}`, payload);
+  return response.data;
+};
+
 export const deleteFolder = async (id) => {
   await api.delete(`/folders/${id}`);
 };
