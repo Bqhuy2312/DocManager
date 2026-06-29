@@ -496,7 +496,7 @@ export default {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
   min-height: 560px;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid #dededb;
   border-radius: 8px;
   background: #fff;

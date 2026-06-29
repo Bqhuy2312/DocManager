@@ -107,14 +107,14 @@
                   <label class="form-check-label"><i class="fas fa-moon"></i> Chế độ tối</label>
                 </div>
               </div>
-              <div class="mb-3">
+              <!-- <div class="mb-3">
                 <label class="form-label"><i class="fas fa-clock"></i> Múi giờ</label>
                 <select class="form-select" v-model="settings.timezone" :disabled="savingGeneral">
                   <option value="UTC+7">UTC+7 (Việt Nam)</option>
                   <option value="UTC+8">UTC+8</option>
                   <option value="UTC+9">UTC+9 (Tokyo)</option>
                 </select>
-              </div>
+              </div> -->
               <button type="submit" class="btn btn-primary" :disabled="savingGeneral">
                 <i class="fas fa-save"></i> {{ savingGeneral ? 'Đang lưu...' : 'Lưu thay đổi' }}
               </button>

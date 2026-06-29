@@ -22,21 +22,65 @@
 
               <div class="mb-3">
                 <label class="form-label"><strong>Danh mục cha</strong></label>
-                <div class="parent-category-grid">
+                <div class="upload-category-nav">
                   <button
-                    v-for="parent in parentFolders"
+                    v-for="parent in visibleParentFolders"
                     :key="parent.id"
                     type="button"
-                    class="parent-category-card"
+                    class="upload-category-tab"
                     :class="{ active: selectedParentId === parent.id }"
                     @click="selectParent(parent.id)"
                   >
-                    <span class="folder-icon"><i class="fas fa-folder"></i></span>
+                    <span class="upload-category-icon"><i class="fas fa-folder"></i></span>
                     <span>
                       <strong>{{ parent.name }}</strong>
                       <small>{{ childrenFor(parent.id).length }} Danh mục con</small>
                     </span>
+                    <em>{{ childrenFor(parent.id).length }}</em>
                   </button>
+
+                  <div v-if="hiddenParentFolders.length" class="upload-category-more">
+                    <button
+                      type="button"
+                      class="upload-category-tab upload-more-button"
+                      :class="{ active: showParentMenu }"
+                      aria-label="Xem tất cả danh mục cha"
+                      @click="showParentMenu = !showParentMenu"
+                    >
+                      <span class="upload-category-icon"><i class="fas fa-ellipsis-h"></i></span>
+                      <span>
+                        <strong>Thêm</strong>
+                        <small>{{ parentFolders.length }} danh mục cha</small>
+                      </span>
+                      <em>{{ hiddenParentFolders.length }}</em>
+                    </button>
+
+                    <div v-if="showParentMenu" class="upload-category-panel">
+                      <div class="upload-category-panel-header">
+                        <strong>Tất cả danh mục cha</strong>
+                        <button type="button" aria-label="Đóng" @click="showParentMenu = false">
+                          <i class="fas fa-xmark"></i>
+                        </button>
+                      </div>
+                      <div class="upload-category-panel-grid">
+                        <button
+                          v-for="parent in parentFolders"
+                          :key="parent.id"
+                          type="button"
+                          class="upload-category-panel-item"
+                          :class="{ active: selectedParentId === parent.id }"
+                          @click="selectParent(parent.id)"
+                        >
+                          <i class="fas fa-folder"></i>
+                          <span>
+                            <strong>{{ parent.name }}</strong>
+                            <small>{{ childrenFor(parent.id).length }} danh mục con</small>
+                          </span>
+                          <em>{{ childrenFor(parent.id).length }}</em>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -57,18 +101,63 @@
                   Không tìm thấy danh mục con phù hợp.
                 </div>
 
-                <div v-else class="child-folder-grid">
+                <div v-else class="upload-category-nav">
                   <button
-                    v-for="folder in filteredChildFolders"
+                    v-for="folder in visibleChildFolders"
                     :key="folder.id"
                     type="button"
-                    class="child-folder-card"
+                    class="upload-category-tab"
                     :class="{ active: form.folderId === folder.id }"
-                    @click="form.folderId = folder.id"
+                    @click="selectChild(folder.id)"
                   >
-                    <i class="fas fa-folder-open"></i>
-                    <span>{{ folder.name }}</span>
+                    <span class="upload-category-icon"><i class="fas fa-folder-open"></i></span>
+                    <span>
+                      <strong>{{ folder.name }}</strong>
+                      <small>Danh mục con</small>
+                    </span>
                   </button>
+
+                  <div v-if="hiddenChildFolders.length" class="upload-category-more">
+                    <button
+                      type="button"
+                      class="upload-category-tab upload-more-button"
+                      :class="{ active: showChildMenu }"
+                      aria-label="Xem tất cả danh mục con"
+                      @click="showChildMenu = !showChildMenu"
+                    >
+                      <span class="upload-category-icon"><i class="fas fa-ellipsis-h"></i></span>
+                      <span>
+                        <strong>Thêm</strong>
+                        <small>{{ filteredChildFolders.length }} danh mục con</small>
+                      </span>
+                      <em>{{ hiddenChildFolders.length }}</em>
+                    </button>
+
+                    <div v-if="showChildMenu" class="upload-category-panel">
+                      <div class="upload-category-panel-header">
+                        <strong>Tất cả danh mục con</strong>
+                        <button type="button" aria-label="Đóng" @click="showChildMenu = false">
+                          <i class="fas fa-xmark"></i>
+                        </button>
+                      </div>
+                      <div class="upload-category-panel-grid">
+                        <button
+                          v-for="folder in filteredChildFolders"
+                          :key="folder.id"
+                          type="button"
+                          class="upload-category-panel-item"
+                          :class="{ active: form.folderId === folder.id }"
+                          @click="selectChild(folder.id)"
+                        >
+                          <i class="fas fa-folder-open"></i>
+                          <span>
+                            <strong>{{ folder.name }}</strong>
+                            <small>{{ selectedParentName }}</small>
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div v-if="selectedFolder" class="selected-path">
@@ -114,6 +203,8 @@ export default {
     return {
       metadata: { folders: [] },
       selectedParentId: "",
+      showParentMenu: false,
+      showChildMenu: false,
       childSearch: "",
       form: {
         title: "",
@@ -142,9 +233,24 @@ export default {
     childFolders() {
       return this.selectedParentId ? this.childrenFor(this.selectedParentId) : [];
     },
+    visibleParentFolders() {
+      return this.parentFolders.slice(0, 5);
+    },
+    hiddenParentFolders() {
+      return this.parentFolders.slice(5);
+    },
     filteredChildFolders() {
       const query = this.childSearch.toLowerCase();
       return this.childFolders.filter((folder) => folder.name.toLowerCase().includes(query));
+    },
+    visibleChildFolders() {
+      return this.filteredChildFolders.slice(0, 5);
+    },
+    hiddenChildFolders() {
+      return this.filteredChildFolders.slice(5);
+    },
+    selectedParentName() {
+      return this.parentFolders.find((folder) => folder.id === this.selectedParentId)?.name || "";
     },
     selectedFolder() {
       return this.metadata.folders.find((folder) => folder.id === this.form.folderId) || null;
@@ -172,6 +278,9 @@ export default {
     },
     selectedParentId() {
       this.saveDraft();
+    },
+    childSearch() {
+      this.showChildMenu = false;
     },
   },
   methods: {
@@ -219,6 +328,12 @@ export default {
       this.selectedParentId = parentId;
       this.form.folderId = "";
       this.childSearch = "";
+      this.showParentMenu = false;
+      this.showChildMenu = false;
+    },
+    selectChild(folderId) {
+      this.form.folderId = folderId;
+      this.showChildMenu = false;
     },
     handleFileUpload(event) {
       this.form.file = event.target.files[0] || null;
@@ -250,6 +365,8 @@ export default {
     resetForm() {
       this.form = { title: "", description: "", folderId: "", tags: "", file: null };
       this.childSearch = "";
+      this.showParentMenu = false;
+      this.showChildMenu = false;
       if (this.$refs.fileInput) this.$refs.fileInput.value = "";
     },
     formatFileSize(bytes) {
@@ -272,44 +389,42 @@ export default {
   width: min(100%, 980px);
 }
 
-.parent-category-grid,
-.child-folder-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+.upload-category-nav {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 100%;
 }
 
-.parent-category-card,
-.child-folder-card {
-  display: flex;
+.upload-category-tab {
+  display: grid;
+  flex: 1 1 180px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  min-width: 0;
+  max-width: 240px;
   min-height: 54px;
+  padding: 8px 10px;
   border: 1px solid #dededb;
-  border-radius: 8px;
+  border-radius: 7px;
   background: #fff;
   color: #292929;
   text-align: left;
 }
 
-.parent-category-card {
-  padding: 10px;
-}
-
-.parent-category-card:hover,
-.parent-category-card.active,
-.child-folder-card:hover,
-.child-folder-card.active {
+.upload-category-tab:hover,
+.upload-category-tab.active {
   border-color: #171717;
 }
 
-.parent-category-card.active,
-.child-folder-card.active {
+.upload-category-tab.active {
   background: #171717;
   color: #fff;
 }
 
-.folder-icon {
+.upload-category-icon {
   display: grid;
   width: 34px;
   height: 34px;
@@ -320,21 +435,116 @@ export default {
   color: #292929;
 }
 
-.parent-category-card.active .folder-icon {
+.upload-category-tab.active .upload-category-icon {
   background: #fff;
 }
 
-.parent-category-card span:not(.folder-icon) {
+.upload-category-tab span:not(.upload-category-icon),
+.upload-category-panel-item span {
   display: grid;
+  min-width: 0;
 }
 
-.parent-category-card small {
+.upload-category-tab strong,
+.upload-category-panel-item strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upload-category-tab small,
+.upload-category-tab em,
+.upload-category-panel-item small,
+.upload-category-panel-item em {
   color: #707070;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
+  font-style: normal;
 }
 
-.parent-category-card.active small {
+.upload-category-tab.active small,
+.upload-category-tab.active em,
+.upload-category-panel-item.active small,
+.upload-category-panel-item.active em {
   color: #d7d7d2;
+}
+
+.upload-category-more {
+  position: static;
+  flex: 1 1 180px;
+  max-width: 240px;
+}
+
+.upload-category-more .upload-category-tab {
+  width: 100%;
+  max-width: 100%;
+}
+
+.upload-more-button {
+  border-style: dashed;
+}
+
+.upload-category-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  z-index: 30;
+  width: min(620px, 100%);
+  max-height: 380px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid #dededb;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 18px 42px rgba(23, 23, 23, 0.16);
+}
+
+.upload-category-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.upload-category-panel-header button {
+  display: inline-grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid #dededb;
+  border-radius: 7px;
+  background: #fff;
+  color: #292929;
+}
+
+.upload-category-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.upload-category-panel-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #dededb;
+  border-radius: 7px;
+  background: #fff;
+  color: #292929;
+  text-align: left;
+}
+
+.upload-category-panel-item:hover,
+.upload-category-panel-item.active {
+  border-color: #171717;
+}
+
+.upload-category-panel-item.active {
+  background: #171717;
+  color: #fff;
 }
 
 .child-search {
@@ -356,10 +566,6 @@ export default {
   background: transparent;
 }
 
-.child-folder-card {
-  padding: 9px 11px;
-}
-
 .empty-child-list {
   padding: 14px;
   border: 1px dashed #dededb;
@@ -379,16 +585,15 @@ export default {
 }
 
 @media (max-width: 900px) {
-  .parent-category-grid,
-  .child-folder-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .upload-category-tab,
+  .upload-category-more {
+    flex-basis: 100%;
+    max-width: 100%;
   }
-}
 
-@media (max-width: 560px) {
-  .parent-category-grid,
-  .child-folder-grid {
-    grid-template-columns: 1fr;
+  .upload-category-panel {
+    left: 0;
+    width: 100%;
   }
 }
 </style>

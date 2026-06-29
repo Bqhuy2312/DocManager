@@ -17,7 +17,7 @@
       <div class="col-md-3">
         <select v-model="sortBy" class="form-select">
           <option value="recent">Gần đây</option>
-          <option value="name">Theo tên</option>
+          <option value="name">A - Z</option>
         </select>
       </div>
     </div>

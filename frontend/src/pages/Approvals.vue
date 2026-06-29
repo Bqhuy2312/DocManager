@@ -14,16 +14,38 @@
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
 
     <div class="approval-toolbar">
-      <button
-        v-for="status in statuses"
-        :key="status.value"
-        type="button"
-        class="btn btn-sm"
-        :class="selectedStatus === status.value ? 'btn-dark' : 'btn-outline-dark'"
-        @click="changeStatus(status.value)"
-      >
-        <i :class="status.icon" class="me-1"></i>{{ status.label }}
-      </button>
+      <div class="status-actions">
+        <button
+          v-for="status in statuses"
+          :key="status.value"
+          type="button"
+          class="btn btn-sm"
+          :class="selectedStatus === status.value ? 'btn-dark' : 'btn-outline-dark'"
+          :disabled="bulkProcessing"
+          @click="changeStatus(status.value)"
+        >
+          <i :class="status.icon" class="me-1"></i>{{ status.label }}
+        </button>
+      </div>
+
+      <div v-if="selectedStatus === 'pending' && documents.length" class="bulk-actions">
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-secondary"
+          :disabled="bulkProcessing"
+          @click="bulkApproval('rejected')"
+        >
+          <i class="fas fa-xmark me-1"></i>{{ bulkProcessing ? "Đang xử lý..." : "Từ chối tất cả" }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-sm btn-success"
+          :disabled="bulkProcessing"
+          @click="bulkApproval('approved')"
+        >
+          <i class="fas fa-check me-1"></i>{{ bulkProcessing ? "Đang xử lý..." : "Duyệt tất cả" }}
+        </button>
+      </div>
     </div>
 
     <Loading v-if="loading" type="cards" :count="6" />
@@ -122,6 +144,7 @@
 import PaginationControls from "@/components/common/PaginationControls.vue";
 import Loading from "@/components/common/Loading.vue";
 import { approveDocument, downloadDocumentFile, getDocuments } from "@/services/documentService";
+import { confirmDialog, notify } from "@/services/notificationService";
 
 export default {
   name: "Approvals",
@@ -133,6 +156,7 @@ export default {
       currentPage: 1,
       itemsPerPage: 15,
       loading: false,
+      bulkProcessing: false,
       error: "",
       statuses: [
         { value: "pending", label: "Chờ phê duyệt", icon: "fas fa-clock" },
@@ -184,6 +208,36 @@ export default {
         await this.loadDocuments();
       } catch (error) {
         this.error = error.response?.data?.message || "Không thể cập nhật trạng thái.";
+      }
+    },
+    async bulkApproval(status) {
+      if (this.selectedStatus !== "pending" || !this.documents.length) return;
+
+      const approved = status === "approved";
+      const total = this.documents.length;
+      const confirmed = await confirmDialog({
+        title: approved ? "Duyệt tất cả tài liệu" : "Từ chối tất cả tài liệu",
+        message: `Bạn chắc chắn muốn ${approved ? "duyệt" : "từ chối"} tất cả ${total} tài liệu đang chờ phê duyệt?`,
+        confirmText: approved ? "Duyệt tất cả" : "Từ chối tất cả",
+        tone: approved ? "primary" : "danger",
+      });
+
+      if (!confirmed) return;
+
+      this.bulkProcessing = true;
+      this.error = "";
+
+      try {
+        await Promise.all(this.documents.map((document) => approveDocument(document.id, status)));
+        notify({
+          title: approved ? "Đã duyệt tất cả" : "Đã từ chối tất cả",
+          message: `${total} tài liệu đã được cập nhật trạng thái.`,
+        });
+        await this.loadDocuments();
+      } catch (error) {
+        this.error = error.response?.data?.message || "Không thể cập nhật tất cả tài liệu.";
+      } finally {
+        this.bulkProcessing = false;
       }
     },
     formatDate(date) {
@@ -246,8 +300,21 @@ export default {
 .approval-toolbar {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
   margin-bottom: 18px;
+}
+
+.status-actions,
+.bulk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bulk-actions {
+  margin-left: auto;
 }
 
 .card {
