@@ -25,6 +25,7 @@ Route::middleware(['auth:sanctum', 'guest.active'])->group(function () {
 
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+    Route::delete('/notifications/read', [NotificationController::class, 'deleteRead']);
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
 
     Route::get('/dashboard', [DashboardController::class, 'index']);

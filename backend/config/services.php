@@ -43,4 +43,9 @@ return [
         'avatars_folder' => env('CLOUDINARY_AVATARS_FOLDER', 'doc-manager/avatars'),
     ],
 
+    'realtime' => [
+        'url' => env('REALTIME_SERVICE_URL', 'http://127.0.0.1:3001'),
+        'secret' => env('REALTIME_SERVICE_SECRET'),
+    ],
+
 ];

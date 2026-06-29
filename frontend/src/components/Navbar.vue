@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <nav class="navbar navbar-expand-lg doc-navbar">
     <div class="container-fluid navbar-layout">
       <router-link to="/dashboard" class="navbar-brand">
@@ -27,7 +27,10 @@
           <div class="dropdown-menu dropdown-menu-end notification-menu">
             <div class="notification-header">
               <strong>Thông báo</strong>
-              <button v-if="unreadCount" type="button" @click="markAllRead">Đánh dấu đã đọc</button>
+              <div class="notification-header-actions">
+                <button v-if="hasReadNotifications" type="button" @click="deleteRead">Xóa đã đọc</button>
+                <button v-if="unreadCount" type="button" @click="markAllRead">Đánh dấu đã đọc</button>
+              </div>
             </div>
             <div v-if="notificationLoading" class="notification-empty">Đang tải...</div>
             <div v-else-if="!notifications.length" class="notification-empty">Chưa có thông báo.</div>
@@ -91,10 +94,16 @@
 <script>
 import { notify } from "@/services/notificationService";
 import {
+  deleteReadNotifications,
   getNotifications,
   markAllNotificationsAsRead,
   markNotificationAsRead,
 } from "@/services/notificationApiService";
+import {
+  connectRealtime,
+  disconnectRealtime,
+  isRealtimeConnected,
+} from "@/services/realtimeService";
 
 export default {
   name: "Navbar",
@@ -113,13 +122,15 @@ export default {
   mounted() {
     window.addEventListener("user-updated", this.refreshUser);
     this.fetchNotifications(false);
+    this.connectNotifications();
     this.notificationPoller = window.setInterval(() => {
-      this.fetchNotifications(true);
-    }, 3000);
+      if (!isRealtimeConnected()) this.fetchNotifications(true);
+    }, 30000);
   },
   beforeUnmount() {
     window.removeEventListener("user-updated", this.refreshUser);
     window.clearInterval(this.notificationPoller);
+    disconnectRealtime();
   },
   computed: {
     roleLabel() {
@@ -132,6 +143,9 @@ export default {
     unreadCountLabel() {
       return this.unreadCount > 9 ? "9+" : String(this.unreadCount);
     },
+    hasReadNotifications() {
+      return this.notifications.some((item) => item.is_read);
+    },
   },
   methods: {
     getStoredUser() {
@@ -143,15 +157,52 @@ export default {
     },
     refreshUser() {
       this.currentUser = this.getStoredUser();
+      this.connectNotifications();
     },
     submitSearch() {
       const query = this.searchQuery.trim();
       this.$router.push({ path: "/documents", query: query ? { search: query } : {} });
     },
     logout() {
+      disconnectRealtime();
       localStorage.removeItem("user");
       localStorage.removeItem("token");
       this.$router.push("/login");
+    },
+    connectNotifications() {
+      const user = this.getStoredUser();
+      if (!user?.id || !localStorage.getItem("token")) return;
+
+      connectRealtime(user.id, {
+        onNotification: this.handleRealtimeNotification,
+        onNotificationState: this.handleRealtimeNotificationState,
+      });
+    },
+    handleRealtimeNotification(payload = {}) {
+      const notification = payload.notification;
+      if (!notification?.id || this.knownUnreadIds.has(notification.id)) return;
+
+      this.notifications = [notification, ...this.notifications]
+        .filter((item, index, items) => items.findIndex((candidate) => candidate.id === item.id) === index)
+        .slice(0, 20);
+      this.unreadCount = payload.unread_count ?? this.unreadCount + 1;
+      this.knownUnreadIds = new Set([
+        ...this.knownUnreadIds,
+        notification.id,
+      ]);
+      this.initializedNotifications = true;
+
+      notify({
+        title: notification.title,
+        message: notification.message,
+        type: notification.type === "rejected" ? "warning" : "info",
+      });
+    },
+    handleRealtimeNotificationState(payload = {}) {
+      if (typeof payload.unread_count === "number") {
+        this.unreadCount = payload.unread_count;
+      }
+      this.fetchNotifications(false);
     },
     async fetchNotifications(showToast = false) {
       if (!localStorage.getItem("token")) return;
@@ -214,6 +265,23 @@ export default {
       } catch {
         notify({
           title: "Không thể cập nhật thông báo",
+          message: "Vui lòng thử lại sau.",
+          type: "danger",
+        });
+      }
+    },
+    async deleteRead() {
+      try {
+        const result = await deleteReadNotifications();
+        this.notifications = this.notifications.filter((item) => !item.is_read);
+        this.unreadCount = result.unread_count ?? this.unreadCount;
+        notify({
+          title: "Đã xóa thông báo",
+          message: `${result.deleted || 0} thông báo đã đọc đã được xóa.`,
+        });
+      } catch {
+        notify({
+          title: "Không thể xóa thông báo",
           message: "Vui lòng thử lại sau.",
           type: "danger",
         });
@@ -391,7 +459,15 @@ export default {
   border-bottom: 1px solid #dededb;
 }
 
-.notification-header button {
+.notification-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.notification-header button,
+.notification-header-actions button {
   border: 0;
   background: transparent;
   color: #707070;
@@ -501,3 +577,4 @@ export default {
   }
 }
 </style>
+

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
+use App\Services\RealtimeNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -29,6 +30,7 @@ class NotificationController extends Controller
         abort_unless((string) $notification->user_id === (string) $request->user()->id, 403);
 
         $notification->update(['is_read' => true]);
+        app(RealtimeNotificationService::class)->notificationStateChanged($request->user());
 
         return response()->json($this->format($notification->fresh()));
     }
@@ -39,9 +41,25 @@ class NotificationController extends Controller
             ->notifications()
             ->where('is_read', false)
             ->update(['is_read' => true]);
+        app(RealtimeNotificationService::class)->notificationStateChanged($request->user());
 
         return response()->json([
             'unread_count' => 0,
+        ]);
+    }
+
+    public function deleteRead(Request $request): JsonResponse
+    {
+        $deleted = $request->user()
+            ->notifications()
+            ->where('is_read', true)
+            ->delete();
+
+        app(RealtimeNotificationService::class)->notificationStateChanged($request->user());
+
+        return response()->json([
+            'deleted' => $deleted,
+            'unread_count' => $request->user()->notifications()->where('is_read', false)->count(),
         ]);
     }
 

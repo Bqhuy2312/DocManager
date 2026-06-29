@@ -10,6 +10,7 @@ use App\Models\Folder;
 use App\Models\Notification;
 use App\Models\User;
 use App\Services\CloudinaryService;
+use App\Services\RealtimeNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -455,7 +456,7 @@ class DocumentController extends Controller
         $settings = $user->settings;
 
         if (! $settings || $settings->in_app_enabled) {
-            Notification::create([
+            $notification = Notification::create([
                 'user_id' => $user->id,
                 'title' => $title,
                 'message' => $message,
@@ -463,6 +464,8 @@ class DocumentController extends Controller
                 'link' => $link,
                 'is_read' => false,
             ]);
+
+            app(RealtimeNotificationService::class)->notificationCreated($user, $notification);
         }
     }
 }

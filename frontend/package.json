@@ -12,6 +12,7 @@
     "@fortawesome/fontawesome-free": "^7.2.0",
     "axios": "^1.16.1",
     "bootstrap": "^5.3.8",
+    "socket.io-client": "^4.8.3",
     "vue": "^3.5.34",
     "vue-router": "^5.1.0"
   },
