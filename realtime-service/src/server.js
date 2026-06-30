@@ -2,6 +2,7 @@ const http = require("http");
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const activityRoutes = require("./routes/activity.routes");
 const notificationRoutes = require("./routes/notification.routes");
 const { initSocket } = require("./socket");
 
@@ -24,6 +25,7 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
+app.use("/api/activities", activityRoutes(io));
 app.use("/api/notifications", notificationRoutes(io));
 
 server.listen(port, () => {

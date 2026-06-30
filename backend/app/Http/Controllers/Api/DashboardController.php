@@ -55,10 +55,10 @@ class DashboardController extends Controller
             ],
             'recent_documents' => $recentDocuments,
             'favorite_documents' => $favoriteDocuments,
+            'popular_documents' => $this->popularDocuments(),
             'activities' => ActivityLog::query()
                 ->with('user:id,full_name,avatar')
                 ->latest()
-                ->limit(10)
                 ->get()
                 ->map(fn (ActivityLog $activity) => $this->formatActivity($activity)),
         ]);
@@ -83,6 +83,46 @@ class DashboardController extends Controller
         ];
     }
 
+    private function popularDocuments()
+    {
+        $accessRows = ActivityLog::query()
+            ->select('target_id')
+            ->selectRaw('COUNT(*) as access_count, MAX(created_at) as last_accessed_at')
+            ->where('action', 'viewed')
+            ->where('target_type', Document::class)
+            ->whereNotNull('target_id')
+            ->groupBy('target_id')
+            ->orderByDesc('access_count')
+            ->orderByDesc('last_accessed_at')
+            ->limit(5)
+            ->get();
+
+        $documents = Document::query()
+            ->with(['creator.department'])
+            ->whereIn('id', $accessRows->pluck('target_id'))
+            ->get()
+            ->keyBy('id');
+
+        return $accessRows
+            ->map(function ($row) use ($documents): ?array {
+                $document = $documents->get($row->target_id);
+                if (! $document) {
+                    return null;
+                }
+
+                return [
+                    'id' => $document->id,
+                    'title' => $document->title,
+                    'author' => $document->creator?->full_name,
+                    'department' => $document->creator?->department?->name,
+                    'access_count' => (int) $row->access_count,
+                    'last_accessed_at' => $row->last_accessed_at,
+                ];
+            })
+            ->filter()
+            ->values();
+    }
+
     private function formatActivity(ActivityLog $activity): array
     {
         $metadata = $activity->metadata ?? [];
@@ -92,8 +132,10 @@ class DashboardController extends Controller
             'action' => $activity->action,
             'user_name' => $activity->user?->full_name ?? 'Người dùng',
             'user_avatar' => $activity->user?->avatar,
-            'document_id' => $metadata['document_id'] ?? $activity->target_id,
-            'document_title' => $metadata['document_title'] ?? 'tài liệu',
+            'document_id' => $metadata['document_id'] ?? null,
+            'document_title' => $metadata['document_title'] ?? null,
+            'target_label' => $metadata['document_title'] ?? $metadata['target_label'] ?? 'hệ thống',
+            'target_type' => $activity->target_type,
             'created_at' => $activity->created_at,
         ];
     }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\ActivityLoggerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -57,6 +58,7 @@ class AuthController extends Controller
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
+        $this->logAuthActivity($request, $user, 'login');
 
         return response()->json([
             'token' => $token,
@@ -76,6 +78,7 @@ class AuthController extends Controller
         ]);
 
         $token = $guest->createToken('guest_token')->plainTextToken;
+        $this->logAuthActivity($request, $guest, 'guest_login');
 
         return response()->json([
             'token' => $token,
@@ -85,6 +88,7 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
+        $this->logAuthActivity($request, $request->user(), 'logout');
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
@@ -126,5 +130,21 @@ class AuthController extends Controller
         }
 
         return response()->json($user->fresh());
+    }
+
+    private function logAuthActivity(Request $request, User $user, string $action): void
+    {
+        app(ActivityLoggerService::class)->logForUser(
+            $user,
+            $action,
+            $user,
+            [
+                'target_label' => 'hệ thống',
+                'email' => $user->email,
+                'role' => $user->role,
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]
+        );
     }
 }

@@ -34,6 +34,9 @@
         <router-link v-if="isAdmin" to="/approvals" class="nav-link" active-class="active">
           <i class="fas fa-clipboard-check me-2"></i>Phê duyệt
         </router-link>
+        <router-link v-if="isAdmin" to="/backups" class="nav-link" active-class="active">
+          <i class="fas fa-database me-2"></i>Sao lưu
+        </router-link>
       </div>
     </nav>
   </div>

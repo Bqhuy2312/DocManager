@@ -1,18 +1,29 @@
 import { io } from "socket.io-client";
 
-const realtimeUrl = import.meta.env.VITE_REALTIME_URL;
+const realtimeUrl = import.meta.env.VITE_REALTIME_URL || "http://127.0.0.1:3001";
 
 let socket = null;
+const activityHandlers = new Set();
 
-export const connectRealtime = (userId, handlers = {}) => {
-  if (!userId) return null;
-
+const ensureSocket = () => {
   if (!socket) {
     socket = io(realtimeUrl, {
       autoConnect: false,
       transports: ["websocket", "polling"],
     });
+
+    socket.on("activity:new", (payload) => {
+      activityHandlers.forEach((handler) => handler(payload));
+    });
   }
+
+  return socket;
+};
+
+export const connectRealtime = (userId, handlers = {}) => {
+  if (!userId) return null;
+
+  const activeSocket = ensureSocket();
 
   socket.off("notification:new");
   socket.off("notification:state");
@@ -35,16 +46,32 @@ export const connectRealtime = (userId, handlers = {}) => {
     socket.emit("user:join", { userId });
     handlers.onConnect?.();
   } else {
-    socket.connect();
+    activeSocket.connect();
   }
 
-  return socket;
+  return activeSocket;
+};
+
+export const subscribeRealtimeActivity = (handler) => {
+  if (typeof handler !== "function") return () => {};
+
+  const activeSocket = ensureSocket();
+  activityHandlers.add(handler);
+
+  if (!activeSocket.connected) {
+    activeSocket.connect();
+  }
+
+  return () => {
+    activityHandlers.delete(handler);
+  };
 };
 
 export const disconnectRealtime = () => {
   if (!socket) return;
   socket.emit("user:leave");
   socket.disconnect();
+  activityHandlers.clear();
   socket = null;
 };
 

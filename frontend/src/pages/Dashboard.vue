@@ -21,6 +21,54 @@
       </div>
     </div>
 
+    <section class="popular-documents-section">
+      <div class="section-heading">
+        <div>
+          <h2>Số lượng truy cập</h2>
+          <p>5 tài liệu được truy cập nhiều nhất trong hệ thống.</p>
+        </div>
+      </div>
+
+      <Loading v-if="loading" type="list" :count="3" />
+
+      <p v-else-if="!popularDocuments.length" class="text-muted">Chưa có dữ liệu truy cập tài liệu.</p>
+
+      <div v-else class="popular-table-wrap">
+        <table class="popular-table">
+          <thead>
+            <tr>
+              <th>Tài liệu</th>
+              <th>Người đăng</th>
+              <th>Phòng ban</th>
+              <th>Lượt truy cập</th>
+              <th>Lần cuối</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="document in popularDocuments"
+              :key="document.id"
+              role="button"
+              tabindex="0"
+              @click="viewDocument(document.id)"
+              @keydown.enter="viewDocument(document.id)"
+              @keydown.space.prevent="viewDocument(document.id)"
+            >
+              <td>
+                <strong>{{ document.title }}</strong>
+              </td>
+              <td>{{ document.author || "Không rõ" }}</td>
+              <td>{{ document.department || "Chưa có phòng ban" }}</td>
+              <td>
+                <span class="access-count">{{ document.access_count }}</span>
+              </td>
+              <td>{{ formatDateTime(document.last_accessed_at) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
     <div class="dashboard-tabs">
       <button type="button" :class="{ active: activeTab === 'recent' }" @click="activeTab = 'recent'">
         <i class="fas fa-clock me-2"></i>Tài liệu gần đây
@@ -44,6 +92,15 @@
           Xem tất cả
           <i class="fas fa-arrow-right ms-1"></i>
         </router-link>
+        <button
+          v-else-if="activities.length"
+          type="button"
+          class="section-action"
+          @click="showActivityModal = true"
+        >
+          Xem tất cả
+          <i class="fas fa-arrow-right ms-1"></i>
+        </button>
       </div>
 
       <Loading v-if="loading" :type="activeTab === 'activity' ? 'list' : 'cards'" :count="3" />
@@ -52,7 +109,7 @@
         <p v-if="!activities.length" class="text-muted">Chưa có hoạt động gần đây.</p>
 
         <div v-else class="activity-list">
-          <article v-for="activity in activities" :key="activity.id" class="activity-item">
+          <article v-for="activity in visibleActivities" :key="activity.id" class="activity-item">
             <div class="activity-avatar">
               <img v-if="activity.user_avatar" :src="activity.user_avatar" alt="Avatar">
               <span v-else>{{ initials(activity.user_name) }}</span>
@@ -66,9 +123,9 @@
                   v-if="activity.document_id && activity.action !== 'deleted'"
                   :to="`/documents/${activity.document_id}`"
                 >
-                  {{ activity.document_title }}
+                  {{ activity.document_title || activity.target_label }}
                 </router-link>
-                <strong v-else>{{ activity.document_title }}</strong>
+                <strong v-else>{{ targetLabel(activity) }}</strong>
               </p>
               <time>{{ formatDateTime(activity.created_at) }}</time>
             </div>
@@ -145,6 +202,50 @@
         </div>
       </template>
     </section>
+
+    <div v-if="showActivityModal" class="activity-modal-backdrop" @click.self="showActivityModal = false">
+      <div class="activity-modal" role="dialog" aria-modal="true" aria-labelledby="activity-modal-title">
+        <div class="activity-modal-header">
+          <div>
+            <h2 id="activity-modal-title">Tất cả hoạt động</h2>
+            <p>{{ activities.length }} logs gần nhất trong hệ thống</p>
+          </div>
+
+          <button type="button" class="activity-modal-close" aria-label="Đóng" @click="showActivityModal = false">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="activity-modal-body">
+          <p v-if="!activities.length" class="text-muted">Chưa có hoạt động gần đây.</p>
+
+          <div v-else class="activity-list">
+            <article v-for="activity in activities" :key="`modal-${activity.id}`" class="activity-item">
+              <div class="activity-avatar">
+                <img v-if="activity.user_avatar" :src="activity.user_avatar" alt="Avatar">
+                <span v-else>{{ initials(activity.user_name) }}</span>
+              </div>
+
+              <div class="activity-content">
+                <p>
+                  <strong>{{ activity.user_name }}</strong>
+                  {{ actionLabel(activity.action) }}
+                  <router-link
+                    v-if="activity.document_id && activity.action !== 'deleted'"
+                    :to="`/documents/${activity.document_id}`"
+                    @click="showActivityModal = false"
+                  >
+                    {{ activity.document_title || activity.target_label }}
+                  </router-link>
+                  <strong v-else>{{ targetLabel(activity) }}</strong>
+                </p>
+                <time>{{ formatDateTime(activity.created_at) }}</time>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -152,6 +253,7 @@
 import Loading from "@/components/common/Loading.vue";
 import { getDashboard } from "@/services/dashboardService";
 import { toggleFavoriteDocument } from "@/services/documentService";
+import { subscribeRealtimeActivity } from "@/services/realtimeService";
 
 export default {
   name: "Dashboard",
@@ -168,7 +270,10 @@ export default {
       },
       recentDocuments: [],
       favoriteDocuments: [],
+      popularDocuments: [],
       activities: [],
+      showActivityModal: false,
+      unsubscribeActivity: null,
       loading: false,
       error: "",
     };
@@ -185,6 +290,9 @@ export default {
     activeDocuments() {
       return this.activeTab === "recent" ? this.recentDocuments : this.favoriteDocuments;
     },
+    visibleActivities() {
+      return this.activities.slice(0, 10);
+    },
     sectionTitle() {
       if (this.activeTab === "favorites") return "Tài liệu đã đánh dấu";
       if (this.activeTab === "activity") return "Hoạt động gần đây";
@@ -193,6 +301,10 @@ export default {
   },
   async mounted() {
     await this.loadDashboard();
+    this.unsubscribeActivity = subscribeRealtimeActivity(this.handleRealtimeActivity);
+  },
+  beforeUnmount() {
+    this.unsubscribeActivity?.();
   },
   methods: {
     async loadDashboard() {
@@ -204,6 +316,7 @@ export default {
         this.stats = data.stats || this.stats;
         this.recentDocuments = data.recent_documents || [];
         this.favoriteDocuments = data.favorite_documents || [];
+        this.popularDocuments = data.popular_documents || [];
         this.activities = data.activities || [];
       } catch (error) {
         this.error = error.response?.data?.message || "Không thể tải dữ liệu dashboard.";
@@ -235,15 +348,59 @@ export default {
         document.id === id ? { ...document, is_favorite: isFavorite } : document
       );
     },
+    handleRealtimeActivity(payload = {}) {
+      const activity = payload.activity;
+      if (!activity?.id) return;
+
+      this.activities = [activity, ...this.activities]
+        .filter((item, index, items) => items.findIndex((candidate) => candidate.id === item.id) === index);
+
+      this.applyRealtimeAccessStat(activity);
+    },
+    applyRealtimeAccessStat(activity) {
+      if (activity.action !== "viewed" || !activity.document_id) return;
+
+      const existing = this.popularDocuments.find((document) => document.id === activity.document_id);
+      if (existing) {
+        existing.access_count += 1;
+        existing.last_accessed_at = activity.created_at;
+      } else {
+        this.popularDocuments.push({
+          id: activity.document_id,
+          title: activity.document_title || activity.target_label || "Tài liệu",
+          author: activity.user_name,
+          department: "",
+          access_count: 1,
+          last_accessed_at: activity.created_at,
+        });
+      }
+
+      this.popularDocuments = [...this.popularDocuments]
+        .sort((a, b) => {
+          if (b.access_count !== a.access_count) return b.access_count - a.access_count;
+          return this.parseDate(b.last_accessed_at) - this.parseDate(a.last_accessed_at);
+        })
+        .slice(0, 5);
+    },
     actionLabel(action) {
+      if (action === "viewed") return "đã truy cập";
+
       return {
+        login: "đã đăng nhập vào",
+        guest_login: "đã đăng nhập với tư cách người xem vào",
+        logout: "đã đăng xuất khỏi",
         uploaded: "đã tải lên",
+        downloaded: "đã tải xuống",
+        updated: "đã cập nhật",
         approved: "đã phê duyệt",
         rejected: "đã từ chối",
         favorited: "đã đánh dấu",
         unfavorited: "đã bỏ đánh dấu",
         deleted: "đã xóa",
       }[action] || "đã thao tác với";
+    },
+    targetLabel(activity) {
+      return activity.target_label || activity.document_title || "hệ thống";
     },
     initials(name = "") {
       return name
@@ -256,17 +413,29 @@ export default {
     },
     formatDate(date) {
       if (!date) return "Chưa có";
-      return new Date(date).toLocaleDateString("vi-VN");
+      return this.parseDate(date).toLocaleDateString("vi-VN", {
+        timeZone: "Asia/Ho_Chi_Minh",
+      });
     },
     formatDateTime(date) {
       if (!date) return "Chưa có";
-      return new Date(date).toLocaleString("vi-VN", {
+      return this.parseDate(date).toLocaleString("vi-VN", {
+        timeZone: "Asia/Ho_Chi_Minh",
         day: "2-digit",
         month: "2-digit",
         year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
       });
+    },
+    parseDate(date) {
+      if (!date || date instanceof Date) return date || new Date(0);
+      if (typeof date !== "string") return new Date(date);
+
+      const normalized = date.includes("T") ? date : date.replace(" ", "T");
+      const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(normalized);
+
+      return new Date(hasTimezone ? normalized : `${normalized}Z`);
     },
     formatFileSize(bytes) {
       if (!bytes) return "0 Bytes";
@@ -303,6 +472,14 @@ export default {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
   margin-bottom: 24px;
+}
+
+.popular-documents-section {
+  margin-bottom: 24px;
+  padding: 22px;
+  border: 1px solid #dededb;
+  border-radius: 8px;
+  background: #fff;
 }
 
 .stat-card {
@@ -351,6 +528,55 @@ export default {
   color: #171717;
   font-size: 1.55rem;
   line-height: 1;
+}
+
+.popular-table-wrap {
+  overflow-x: auto;
+}
+
+.popular-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+.popular-table th,
+.popular-table td {
+  padding: 14px 12px;
+  border-top: 1px solid #ededeb;
+  vertical-align: middle;
+}
+
+.popular-table th {
+  color: #707070;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.popular-table tbody tr {
+  cursor: pointer;
+}
+
+.popular-table tbody tr:hover,
+.popular-table tbody tr:focus {
+  background: #f7f7f5;
+  outline: 0;
+}
+
+.popular-table strong {
+  color: #171717;
+}
+
+.access-count {
+  display: inline-grid;
+  min-width: 34px;
+  height: 28px;
+  place-items: center;
+  border-radius: 999px;
+  background: #171717;
+  color: #fff;
+  font-weight: 800;
 }
 
 .dashboard-tabs {
@@ -404,10 +630,20 @@ export default {
   color: #707070;
 }
 
-.section-heading a {
+.section-heading a,
+.section-action {
   color: #171717;
   font-weight: 700;
   text-decoration: none;
+}
+
+.section-action {
+  border: 0;
+  background: transparent;
+}
+
+.section-action:hover {
+  text-decoration: underline;
 }
 
 .dashboard-document-card {
@@ -514,6 +750,67 @@ export default {
 .activity-content time {
   color: #707070;
   font-size: 0.85rem;
+}
+
+.activity-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.activity-modal {
+  width: min(820px, 100%);
+  max-height: min(760px, calc(100vh - 48px));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  border: 1px solid #dededb;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.22);
+}
+
+.activity-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px;
+  border-bottom: 1px solid #dededb;
+}
+
+.activity-modal-header h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.activity-modal-header p {
+  margin: 4px 0 0;
+  color: #707070;
+}
+
+.activity-modal-close {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid #dededb;
+  border-radius: 8px;
+  background: #fff;
+  color: #171717;
+}
+
+.activity-modal-close:hover {
+  background: #f4f4f2;
+}
+
+.activity-modal-body {
+  overflow: auto;
+  padding: 22px;
 }
 
 @media (max-width: 850px) {

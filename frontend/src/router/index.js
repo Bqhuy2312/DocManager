@@ -9,6 +9,7 @@ import Upload from "../pages/Upload.vue";
 import Members from "../pages/Members.vue";
 import MemberDetail from "../pages/MemberDetail.vue";
 import Departments from "../pages/Departments.vue";
+import Backups from "../pages/Backups.vue";
 import Settings from "../pages/Settings.vue";
 import DocumentDetail from "../pages/DocumentDetail.vue";
 import Approvals from "../pages/Approvals.vue";
@@ -82,6 +83,12 @@ const routes = [
     path: '/departments',
     name: 'Departments',
     component: Departments,
+    meta: { requiresAdmin: true }
+  },
+  {
+    path: '/backups',
+    name: 'Backups',
+    component: Backups,
     meta: { requiresAdmin: true }
   },
   {

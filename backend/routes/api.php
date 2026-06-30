@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\DocumentController;
@@ -56,6 +57,10 @@ Route::middleware(['auth:sanctum', 'guest.active'])->group(function () {
         Route::post('/departments', [DepartmentController::class, 'store']);
         Route::patch('/departments/{department}', [DepartmentController::class, 'update']);
         Route::delete('/departments/{department}', [DepartmentController::class, 'destroy']);
+        Route::get('/backups', [BackupController::class, 'index']);
+        Route::post('/backups', [BackupController::class, 'store']);
+        Route::get('/backups/{backup}/download', [BackupController::class, 'download']);
+        Route::delete('/backups/{backup}', [BackupController::class, 'destroy']);
         Route::patch('/documents/{document}/approval', [DocumentController::class, 'approve']);
         Route::delete('/documents/{document}', [DocumentController::class, 'destroy']);
     });

@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\ActivityLog;
 use App\Models\Document;
 use App\Models\DocumentVersion;
 use App\Models\Folder;
 use App\Models\Notification;
 use App\Models\User;
 use App\Services\CloudinaryService;
+use App\Services\ActivityLoggerService;
 use App\Services\RealtimeNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -60,6 +60,8 @@ class DocumentController extends Controller
     public function show(Request $request, Document $document): JsonResponse
     {
         abort_unless($this->canView($request, $document), 403);
+
+        $this->logActivity($request, 'viewed', $document);
 
         return response()->json($this->format(
             $document
@@ -162,6 +164,8 @@ class DocumentController extends Controller
     public function download(Request $request, Document $document): RedirectResponse
     {
         abort_unless($this->canView($request, $document), 403);
+
+        $this->logActivity($request, 'downloaded', $document);
 
         return redirect()->away($document->file_path);
     }
@@ -366,16 +370,15 @@ class DocumentController extends Controller
 
     private function logActivity(Request $request, string $action, Document $document): void
     {
-        ActivityLog::create([
-            'user_id' => $request->user()->id,
-            'action' => $action,
-            'target_type' => Document::class,
-            'target_id' => $document->id,
-            'metadata' => [
+        app(ActivityLoggerService::class)->log(
+            $request,
+            $action,
+            $document,
+            [
                 'document_id' => $document->id,
                 'document_title' => $document->title,
-            ],
-        ]);
+            ]
+        );
     }
 
     private function notifyAdminsAboutUpload(Request $request, Document $document): void
