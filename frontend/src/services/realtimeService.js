@@ -1,6 +1,6 @@
 import { io } from "socket.io-client";
 
-const realtimeUrl = import.meta.env.VITE_REALTIME_URL || "http://127.0.0.1:3001";
+const realtimeUrl = import.meta.env.VITE_REALTIME_URL;
 
 let socket = null;
 
