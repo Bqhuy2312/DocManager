@@ -214,7 +214,7 @@
                     v-for="index in 6"
                     :key="index"
                     class="two-factor-dot"
-                    :class="{ filled: security.twoFactorPin.length >= index }"
+                    :class="{ filled: security.twoFactorPin.length >= index, 'is-filled': security.twoFactorPin.length >= index }"
                   ></span>
                 <input
                   ref="securityTwoFactorInput"
@@ -570,7 +570,7 @@ export default {
 }
 
 .two-factor-dot.filled {
-  background: #171717;
+  background: #171717 !important;
   transform: scale(0.94);
 }
 

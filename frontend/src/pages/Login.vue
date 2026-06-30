@@ -56,7 +56,7 @@
               v-for="index in 6"
               :key="index"
               class="two-factor-dot"
-              :class="{ filled: twoFactorCode.length >= index }"
+              :class="{ filled: twoFactorCode.length >= index, 'is-filled': twoFactorCode.length >= index }"
             ></span>
             <input
               id="two-factor-code"
@@ -88,7 +88,7 @@
           :disabled="loading"
           @click="handleGuestLogin"
         >
-          <i class="far fa-eye me-2"></i>Đăng nhập với tư cách người xem
+          <i class="far fa-eye me-2"></i>Đăng nhập nhanh với tư cách khách
         </button>
 
         <button
@@ -355,7 +355,7 @@ export default {
 }
 
 .two-factor-dot.filled {
-  background: #171717;
+  background: #171717 !important;
   transform: scale(0.94);
 }
 
