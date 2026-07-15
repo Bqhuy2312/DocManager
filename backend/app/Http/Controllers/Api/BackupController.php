@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Backup;
+use App\Services\BackupRestoreService;
 use App\Services\BackupService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -39,6 +40,36 @@ class BackupController extends Controller
         $backup = $backupService->run($backup);
 
         return response()->json($this->format($backup), $backup->status === 'success' ? 201 : 500);
+    }
+
+    public function restore(Request $request, BackupService $backupService, BackupRestoreService $restoreService): JsonResponse
+    {
+        $validated = $request->validate([
+            'file' => ['required', 'file', 'max:512000'],
+        ]);
+
+        $safetyBackup = Backup::create([
+            'created_by' => $request->user()->id,
+            'type' => 'database',
+            'status' => 'pending',
+            'message' => 'Auto backup before database restore.',
+        ]);
+
+        $safetyBackup = $backupService->run($safetyBackup);
+        if ($safetyBackup->status !== 'success') {
+            return response()->json([
+                'message' => 'Không thể tạo backup an toàn trước khi import.',
+                'backup' => $this->format($safetyBackup),
+            ], 500);
+        }
+
+        $result = $restoreService->restore($validated['file']);
+
+        return response()->json([
+            'message' => 'Import backup thành công. Bạn có thể cần đăng nhập lại nếu dữ liệu tài khoản/token đã thay đổi.',
+            'executed_statements' => $result['executed_statements'],
+            'safety_backup' => $this->format($safetyBackup),
+        ]);
     }
 
     public function download(Backup $backup): BinaryFileResponse

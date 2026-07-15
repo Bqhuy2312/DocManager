@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="container-fluid py-4">
     <div class="dashboard-header">
       <div>
@@ -193,7 +193,8 @@
                   <span><i class="fas fa-user me-1"></i>Người đăng: {{ document.author || "Không rõ" }}</span>
                   <span><i class="fas fa-building me-1"></i>Phòng ban: {{ document.department || "Chưa có phòng ban" }}</span>
                   <span><i class="fas fa-clock me-1"></i>Cập nhật: {{ formatDateTime(document.updated_at) }}</span>
-                  <span><i class="fas fa-weight-hanging me-1"></i>Kích thước: {{ formatFileSize(document.file_size) }}</span>
+                  <span><i class="fas fa-eye me-1"></i>Lượt truy cập: {{ document.access_count || 0 }}</span>
+              <span><i class="fas fa-weight-hanging me-1"></i>Kích thước: {{ formatFileSize(document.file_size) }}</span>
                   <span><i class="fas fa-upload me-1"></i>Tải lên: {{ formatDate(document.created_at) }}</span>
                 </div>
               </div>
@@ -830,3 +831,4 @@ export default {
   }
 }
 </style>
+

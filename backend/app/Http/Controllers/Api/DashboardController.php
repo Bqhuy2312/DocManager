@@ -75,6 +75,7 @@ class DashboardController extends Controller
             'author' => $document->creator?->full_name,
             'department' => $document->creator?->department?->name,
             'status' => $document->status,
+            'access_count' => $this->accessCount($document),
             'is_favorite' => (bool) ($document->is_favorite ?? false),
             'file_size' => $document->file_size,
             'tags' => $document->tags->pluck('tag_name')->values(),
@@ -121,6 +122,15 @@ class DashboardController extends Controller
             })
             ->filter()
             ->values();
+    }
+
+    private function accessCount(Document $document): int
+    {
+        return ActivityLog::query()
+            ->where('action', 'viewed')
+            ->where('target_type', Document::class)
+            ->where('target_id', $document->id)
+            ->count();
     }
 
     private function formatActivity(ActivityLog $activity): array

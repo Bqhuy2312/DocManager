@@ -59,6 +59,7 @@ Route::middleware(['auth:sanctum', 'guest.active'])->group(function () {
         Route::delete('/departments/{department}', [DepartmentController::class, 'destroy']);
         Route::get('/backups', [BackupController::class, 'index']);
         Route::post('/backups', [BackupController::class, 'store']);
+        Route::post('/backups/restore', [BackupController::class, 'restore']);
         Route::get('/backups/{backup}/download', [BackupController::class, 'download']);
         Route::delete('/backups/{backup}', [BackupController::class, 'destroy']);
         Route::patch('/documents/{document}/approval', [DocumentController::class, 'approve']);

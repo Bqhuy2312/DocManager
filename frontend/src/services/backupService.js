@@ -15,6 +15,14 @@ export const deleteBackup = async (id) => {
   return response.data;
 };
 
+export const restoreBackup = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await api.post("/backups/restore", formData);
+  return response.data;
+};
+
 export const downloadBackup = async (backup) => {
   const response = await api.get(`/backups/${backup.id}/download`, {
     responseType: "blob",

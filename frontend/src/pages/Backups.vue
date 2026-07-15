@@ -7,12 +7,16 @@
       </div>
 
       <div class="backup-actions">
-        <button class="btn btn-outline-dark" type="button" :disabled="creating" @click="runBackup('database')">
+        <button class="btn btn-outline-dark" type="button" :disabled="creating || restoring" @click="runBackup('database')">
           <i class="fas fa-server me-2"></i>Backup database
         </button>
-        <button class="btn btn-dark" type="button" :disabled="creating" @click="runBackup('full')">
+        <button class="btn btn-dark" type="button" :disabled="creating || restoring" @click="runBackup('full')">
           <i class="fas fa-cloud-download-alt me-2"></i>Backup full
         </button>
+        <button class="btn btn-outline-danger" type="button" :disabled="creating || restoring" @click="$refs.restoreInput?.click()">
+          <i class="fas fa-file-import me-2"></i>Import backup
+        </button>
+        <input ref="restoreInput" class="d-none" type="file" accept=".zip,.sql" @change="restoreFromFile">
       </div>
     </div>
 
@@ -105,6 +109,7 @@ import {
   deleteBackup,
   downloadBackup,
   getBackups,
+  restoreBackup,
 } from "@/services/backupService";
 import { confirmDialog, notify } from "@/services/notificationService";
 
@@ -116,6 +121,7 @@ export default {
       backups: [],
       loading: false,
       creating: false,
+      restoring: false,
       error: "",
     };
   },
@@ -177,6 +183,39 @@ export default {
           message: error.response?.data?.message || "File backup không khả dụng.",
           type: "danger",
         });
+      }
+    },
+    async restoreFromFile(event) {
+      const file = event.target.files[0];
+      event.target.value = "";
+      if (!file) return;
+
+      const confirmed = await confirmDialog({
+        title: "Import backup",
+        message: "Thao tác này sẽ import database.sql vào hệ thống và có thể ghi đè dữ liệu hiện tại. Hệ thống sẽ tự tạo một backup database trước khi import. Bạn muốn tiếp tục?",
+        confirmText: "Import backup",
+        tone: "danger",
+      });
+
+      if (!confirmed) return;
+
+      this.restoring = true;
+      try {
+        const result = await restoreBackup(file);
+        notify({
+          title: "Import backup thành công",
+          message: result.message || "Dữ liệu đã được khôi phục từ backup.",
+          type: "success",
+        });
+        await this.loadBackups();
+      } catch (error) {
+        notify({
+          title: "Không thể import backup",
+          message: error.response?.data?.message || "File backup không hợp lệ hoặc không thể import.",
+          type: "danger",
+        });
+      } finally {
+        this.restoring = false;
       }
     },
     async removeBackup(backup) {

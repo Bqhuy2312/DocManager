@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="container-fluid py-4">
     <button class="back-button" type="button" @click="goBack">
       <i class="fas fa-arrow-left me-2"></i>Quay lại
@@ -133,12 +133,21 @@
                 <input v-model.trim="updateForm.tags" class="form-control" type="text">
               </div>
               <div>
-                <label class="form-label">File phiên bản mới</label>
-                <input ref="updateFileInput" class="form-control" type="file" required @change="handleUpdateFile">
+                <label class="form-label">Danh mục / thư mục con</label>
+                <select v-model="updateForm.folder_id" class="form-select" required>
+                  <option value="">-- Chọn danh mục --</option>
+                  <option v-for="folder in folderOptions" :key="folder.id" :value="folder.id">
+                    {{ folder.parent?.name || "Không rõ" }} / {{ folder.name }}
+                  </option>
+                </select>
               </div>
-              <small class="text-muted">Sau khi cập nhật, tài liệu sẽ chuyển về trạng thái chờ phê duyệt.</small>
+              <div>
+                <label class="form-label">File phiên bản mới (không bắt buộc)</label>
+                <input ref="updateFileInput" class="form-control" type="file" @change="handleUpdateFile">
+              </div>
+              <small class="text-muted">Có thể chỉ cập nhật thông tin. Nếu chọn file mới, hệ thống sẽ tạo phiên bản mới.</small>
               <button class="btn btn-primary" type="submit" :disabled="updating">
-                <i class="fas fa-upload me-1"></i>{{ updating ? "Đang cập nhật..." : "Cập nhật phiên bản" }}
+                <i class="fas fa-save me-1"></i>{{ updating ? "Đang cập nhật..." : "Lưu cập nhật" }}
               </button>
             </form>
           </div>
@@ -166,6 +175,7 @@ import {
   deleteDocument,
   downloadDocumentFile,
   getDocument,
+  getDocumentMetadata,
   updateDocumentFile,
 } from "@/services/documentService";
 import { confirmDialog, notify } from "@/services/notificationService";
@@ -181,9 +191,11 @@ export default {
       previewVisible: true,
       updateFormVisible: false,
       updating: false,
+      folderOptions: [],
       updateForm: {
         title: "",
         description: "",
+        folder_id: "",
         tags: "",
         file: null,
       },
@@ -249,6 +261,7 @@ export default {
       this.updateForm = {
         title: this.document?.title || "",
         description: this.document?.description || "",
+        folder_id: this.document?.folder_id || "",
         tags: (this.document?.tags || []).join(", "),
         file: null,
       };
@@ -258,7 +271,12 @@ export default {
       this.loading = true;
       this.error = "";
       try {
-        this.document = await getDocument(this.$route.params.id);
+        const [document, metadata] = await Promise.all([
+          getDocument(this.$route.params.id),
+          getDocumentMetadata(),
+        ]);
+        this.document = document;
+        this.folderOptions = metadata.folders || [];
         this.fillUpdateForm();
       } catch (error) {
         this.error = error.response?.data?.message || "Không thể tải chi tiết tài liệu.";
@@ -270,27 +288,28 @@ export default {
       this.updateForm.file = event.target.files[0] || null;
     },
     async submitUpdate() {
-      if (!this.updateForm.file) {
-        notify({ title: "Chưa chọn file", message: "Vui lòng chọn file phiên bản mới.", type: "danger" });
-        return;
-      }
-
       this.updating = true;
       this.error = "";
 
+      const hasNewFile = Boolean(this.updateForm.file);
       const formData = new FormData();
       formData.append("title", this.updateForm.title);
       formData.append("description", this.updateForm.description);
+      formData.append("folder_id", this.updateForm.folder_id);
       formData.append("tags", this.updateForm.tags);
-      formData.append("file", this.updateForm.file);
+      if (hasNewFile) {
+        formData.append("file", this.updateForm.file);
+      }
 
       try {
         this.document = await updateDocumentFile(this.document.id, formData);
         this.fillUpdateForm();
         this.updateFormVisible = false;
         notify({
-          title: "Đã cập nhật phiên bản",
-          message: "Tài liệu đã chuyển về trạng thái chờ phê duyệt.",
+          title: "Đã cập nhật tài liệu",
+          message: hasNewFile
+            ? "Tài liệu đã được cập nhật phiên bản mới và chuyển về trạng thái chờ phê duyệt."
+            : "Thông tin tài liệu đã được cập nhật và chuyển về trạng thái chờ phê duyệt.",
         });
       } catch (error) {
         this.error = error.response?.data?.message || "Không thể cập nhật tài liệu.";
@@ -490,3 +509,4 @@ export default {
   }
 }
 </style>
+

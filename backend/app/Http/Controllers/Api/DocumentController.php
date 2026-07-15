@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Document;
 use App\Models\DocumentVersion;
 use App\Models\Folder;
@@ -196,35 +197,52 @@ class DocumentController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
+            'folder_id' => [
+                'nullable',
+                'uuid',
+                Rule::exists('folders', 'id')->whereNotNull('parent_id'),
+            ],
             'tags' => ['nullable', 'string'],
-            'file' => ['required', 'file', 'max:102400'],
+            'file' => ['nullable', 'file', 'max:102400'],
         ]);
 
-        try {
-            $upload = $this->cloudinary->uploadDocument($request->file('file'));
-        } catch (RuntimeException $exception) {
-            return response()->json(['message' => $exception->getMessage()], 503);
+        $upload = null;
+        $hasNewFile = $request->hasFile('file');
+
+        if ($hasNewFile) {
+            try {
+                $upload = $this->cloudinary->uploadDocument($request->file('file'));
+            } catch (RuntimeException $exception) {
+                return response()->json(['message' => $exception->getMessage()], 503);
+            }
         }
 
-        $oldPublicId = $document->cloudinary_public_id;
+        $oldPublicId = $hasNewFile ? $document->cloudinary_public_id : null;
 
         try {
-            $document = DB::transaction(function () use ($request, $document, $validated, $upload): Document {
-                $file = $request->file('file');
-                $nextVersion = $this->nextVersion($document->version);
-
-                $document->update([
+            $document = DB::transaction(function () use ($request, $document, $validated, $upload, $hasNewFile): Document {
+                $updates = [
                     'approved_by' => null,
+                    'folder_id' => $validated['folder_id'] ?? $document->folder_id,
                     'title' => $validated['title'],
                     'description' => $validated['description'] ?? null,
-                    'file_name' => $file->getClientOriginalName(),
-                    'file_path' => $upload['url'],
-                    'cloudinary_public_id' => $upload['public_id'],
-                    'file_size' => $file->getSize(),
-                    'mime_type' => $file->getMimeType(),
-                    'version' => $nextVersion,
                     'status' => 'pending',
-                ]);
+                ];
+
+                if ($hasNewFile) {
+                    $file = $request->file('file');
+                    $updates = [
+                        ...$updates,
+                        'file_name' => $file->getClientOriginalName(),
+                        'file_path' => $upload['url'],
+                        'cloudinary_public_id' => $upload['public_id'],
+                        'file_size' => $file->getSize(),
+                        'mime_type' => $file->getMimeType(),
+                        'version' => $this->nextVersion($document->version),
+                    ];
+                }
+
+                $document->update($updates);
 
                 $document->tags()->delete();
 
@@ -237,30 +255,36 @@ class DocumentController extends Controller
                     $tags->map(fn (string $tag) => ['tag_name' => $tag])->all()
                 );
 
-                DocumentVersion::create([
-                    'document_id' => $document->id,
-                    'updated_by' => $request->user()->id,
-                    'version' => $nextVersion,
-                    'title' => $document->title,
-                    'description' => $document->description,
-                    'file_name' => $document->file_name,
-                    'file_path' => $document->file_path,
-                    'cloudinary_public_id' => $document->cloudinary_public_id,
-                    'file_size' => $document->file_size,
-                    'mime_type' => $document->mime_type,
-                ]);
+                if ($hasNewFile) {
+                    DocumentVersion::create([
+                        'document_id' => $document->id,
+                        'updated_by' => $request->user()->id,
+                        'version' => $document->version,
+                        'title' => $document->title,
+                        'description' => $document->description,
+                        'file_name' => $document->file_name,
+                        'file_path' => $document->file_path,
+                        'cloudinary_public_id' => $document->cloudinary_public_id,
+                        'file_size' => $document->file_size,
+                        'mime_type' => $document->mime_type,
+                    ]);
+                }
 
                 return $document->fresh();
             });
         } catch (\Throwable $exception) {
-            $this->cloudinary->destroyDocument($upload['public_id']);
+            if ($upload) {
+                $this->cloudinary->destroyDocument($upload['public_id']);
+            }
             throw $exception;
         }
 
-        try {
-            $this->cloudinary->destroyDocument($oldPublicId);
-        } catch (RuntimeException) {
-            // The new version is already active; stale cleanup can be retried later.
+        if ($oldPublicId) {
+            try {
+                $this->cloudinary->destroyDocument($oldPublicId);
+            } catch (RuntimeException) {
+                // The new version is already active; stale cleanup can be retried later.
+            }
         }
 
         $this->logActivity($request, 'updated', $document);
@@ -325,6 +349,7 @@ class DocumentController extends Controller
             'mime_type' => $document->mime_type,
             'version' => $document->version,
             'status' => $document->status,
+            'access_count' => $this->accessCount($document),
             'is_favorite' => (bool) ($document->is_favorite ?? false),
             'tags' => $document->tags->pluck('tag_name')->values(),
             'versions' => $document->relationLoaded('versions')
@@ -352,6 +377,15 @@ class DocumentController extends Controller
         return $request->user()->role === 'admin'
             || $document->status === 'approved'
             || ($request->user()->role === 'editor' && $document->created_by === $request->user()->id);
+    }
+
+    private function accessCount(Document $document): int
+    {
+        return ActivityLog::query()
+            ->where('action', 'viewed')
+            ->where('target_type', Document::class)
+            ->where('target_id', $document->id)
+            ->count();
     }
 
     private function canUpdate(Request $request, Document $document): bool
