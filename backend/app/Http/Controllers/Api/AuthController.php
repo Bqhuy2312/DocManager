@@ -66,15 +66,87 @@ class AuthController extends Controller
         ]);
     }
 
+    public function register(Request $request)
+    {
+        $data = $request->validate([
+            'full_name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:6', 'confirmed'],
+            'department_id' => ['required', 'exists:departments,id'],
+        ]);
+
+        $user = User::create([
+            'department_id' => $data['department_id'],
+            'full_name' => $data['full_name'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
+            'role' => 'viewer',
+            'is_guest' => false,
+        ]);
+
+        $user->settings()->create([
+            'language' => 'vi',
+            'auto_save' => true,
+            'dark_mode' => false,
+            'timezone' => 'Asia/Ho_Chi_Minh',
+            'email_enabled' => false,
+            'in_app_enabled' => true,
+            'notify_upload' => true,
+            'notify_edit' => true,
+            'notify_approve' => true,
+            'notify_system' => true,
+            'two_factor_enabled' => false,
+        ]);
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+        $this->logAuthActivity($request, $user, 'register');
+
+        return response()->json([
+            'token' => $token,
+            'user' => $user->load('department'),
+        ], 201);
+    }
+
     public function guestLogin(Request $request)
     {
+        $data = $request->validate([
+            'guest_device_id' => ['required', 'string', 'max:100'],
+        ]);
+
+        $expiresAt = now()->addDays(30);
+        $existingGuest = User::query()
+            ->where('is_guest', true)
+            ->where('guest_device_id', $data['guest_device_id'])
+            ->where(function ($query): void {
+                $query
+                    ->whereNull('guest_expires_at')
+                    ->orWhere('guest_expires_at', '>', now());
+            })
+            ->latest()
+            ->first();
+
+        if ($existingGuest) {
+            $existingGuest->update([
+                'guest_expires_at' => $expiresAt,
+            ]);
+
+            $token = $existingGuest->createToken('guest_token')->plainTextToken;
+            $this->logAuthActivity($request, $existingGuest, 'guest_login');
+
+            return response()->json([
+                'token' => $token,
+                'user' => $existingGuest->fresh(),
+            ]);
+        }
+
         $guest = User::create([
             'full_name' => 'Người xem ' . now()->format('His'),
             'email' => 'guest_' . Str::uuid() . '@guest.local',
             'password' => Hash::make(Str::random(32)),
             'role' => 'viewer',
             'is_guest' => true,
-            'guest_expires_at' => now()->addDays(7),
+            'guest_expires_at' => $expiresAt,
+            'guest_device_id' => $data['guest_device_id'],
         ]);
 
         $token = $guest->createToken('guest_token')->plainTextToken;

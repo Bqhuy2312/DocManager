@@ -27,12 +27,14 @@ class User extends Authenticatable
         'avatar',
         'avatar_public_id',
         'is_guest',
-        'guest_expires_at'
+        'guest_expires_at',
+        'guest_device_id'
     ];
 
     protected $hidden = [
         'password',
-        'avatar_public_id'
+        'avatar_public_id',
+        'guest_device_id'
     ];
 
     protected $casts = [

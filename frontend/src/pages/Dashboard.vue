@@ -33,39 +33,76 @@
 
       <p v-else-if="!popularDocuments.length" class="text-muted">Chưa có dữ liệu truy cập tài liệu.</p>
 
-      <div v-else class="popular-table-wrap">
-        <table class="popular-table">
-          <thead>
-            <tr>
-              <th>Tài liệu</th>
-              <th>Người đăng</th>
-              <th>Phòng ban</th>
-              <th>Lượt truy cập</th>
-              <th>Lần cuối</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="document in popularDocuments"
-              :key="document.id"
-              role="button"
-              tabindex="0"
-              @click="viewDocument(document.id)"
-              @keydown.enter="viewDocument(document.id)"
-              @keydown.space.prevent="viewDocument(document.id)"
-            >
-              <td>
-                <strong>{{ document.title }}</strong>
-              </td>
-              <td>{{ document.author || "Không rõ" }}</td>
-              <td>{{ document.department || "Chưa có phòng ban" }}</td>
-              <td>
-                <span class="access-count">{{ document.access_count }}</span>
-              </td>
-              <td>{{ formatDateTime(document.last_accessed_at) }}</td>
-            </tr>
-          </tbody>
-        </table>
+      <div v-else class="access-insights">
+        <article
+          class="access-hero"
+          role="button"
+          tabindex="0"
+          @click="viewDocument(topAccessDocument.id)"
+          @keydown.enter="viewDocument(topAccessDocument.id)"
+          @keydown.space.prevent="viewDocument(topAccessDocument.id)"
+        >
+          <div class="access-hero-top">
+            <span class="access-kicker">Tài liệu nổi bật</span>
+            <span class="access-rank-badge">
+              <i class="fas fa-trophy"></i>
+              Top 1
+            </span>
+          </div>
+
+          <h3>{{ topAccessDocument.title }}</h3>
+          <p>{{ topAccessDocument.author || "Không rõ" }} · {{ topAccessDocument.department || "Chưa có phòng ban" }}</p>
+
+          <div class="access-hero-stats">
+            <div>
+              <strong>{{ topAccessDocument.access_count || 0 }}</strong>
+              <span>Lượt truy cập</span>
+            </div>
+            <div>
+              <strong>{{ totalPopularAccesses }}</strong>
+              <span>Tổng top 5</span>
+            </div>
+          </div>
+
+          <div class="access-hero-footer">
+            <i class="fas fa-clock"></i>
+            Lần cuối: {{ formatDateTime(topAccessDocument.last_accessed_at) }}
+          </div>
+        </article>
+
+        <div class="access-ranking">
+          <article
+            v-for="(document, index) in popularDocuments"
+            :key="document.id"
+            class="access-rank-item"
+            role="button"
+            tabindex="0"
+            @click="viewDocument(document.id)"
+            @keydown.enter="viewDocument(document.id)"
+            @keydown.space.prevent="viewDocument(document.id)"
+          >
+            <div class="rank-number">{{ index + 1 }}</div>
+
+            <div class="rank-content">
+              <div class="rank-main">
+                <div>
+                  <h3>{{ document.title }}</h3>
+                  <p>{{ document.author || "Không rõ" }} · {{ document.department || "Chưa có phòng ban" }}</p>
+                </div>
+                <strong>{{ document.access_count || 0 }}</strong>
+              </div>
+
+              <div class="rank-progress" aria-hidden="true">
+                <span :style="{ width: accessPercent(document) + '%' }"></span>
+              </div>
+
+              <div class="rank-meta">
+                <span><i class="fas fa-eye me-1"></i>{{ document.access_count || 0 }} lượt</span>
+                <span><i class="fas fa-clock me-1"></i>{{ formatDateTime(document.last_accessed_at) }}</span>
+              </div>
+            </div>
+          </article>
+        </div>
       </div>
     </section>
 
@@ -294,6 +331,15 @@ export default {
     visibleActivities() {
       return this.activities.slice(0, 10);
     },
+    topAccessDocument() {
+      return this.popularDocuments[0] || {};
+    },
+    maxPopularAccessCount() {
+      return Math.max(...this.popularDocuments.map((document) => document.access_count || 0), 1);
+    },
+    totalPopularAccesses() {
+      return this.popularDocuments.reduce((total, document) => total + (document.access_count || 0), 0);
+    },
     sectionTitle() {
       if (this.activeTab === "favorites") return "Tài liệu đã đánh dấu";
       if (this.activeTab === "activity") return "Hoạt động gần đây";
@@ -382,6 +428,9 @@ export default {
           return this.parseDate(b.last_accessed_at) - this.parseDate(a.last_accessed_at);
         })
         .slice(0, 5);
+    },
+    accessPercent(document) {
+      return Math.max(8, Math.round(((document.access_count || 0) / this.maxPopularAccessCount) * 100));
     },
     actionLabel(action) {
       if (action === "viewed") return "đã truy cập";
@@ -477,7 +526,7 @@ export default {
 
 .popular-documents-section {
   margin-bottom: 24px;
-  padding: 22px;
+  padding: 18px;
   border: 1px solid #dededb;
   border-radius: 8px;
   background: #fff;
@@ -531,45 +580,170 @@ export default {
   line-height: 1;
 }
 
-.popular-table-wrap {
-  overflow-x: auto;
+.access-insights {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.72fr) minmax(0, 1.55fr);
+  gap: 14px;
 }
 
-.popular-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 720px;
+.access-hero,
+.access-rank-item {
+  border: 1px solid #dededb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-.popular-table th,
-.popular-table td {
-  padding: 14px 12px;
-  border-top: 1px solid #ededeb;
-  vertical-align: middle;
+.access-hero:hover,
+.access-hero:focus,
+.access-rank-item:hover,
+.access-rank-item:focus {
+  border-color: #171717;
+  box-shadow: 0 12px 28px rgba(23, 23, 23, 0.1);
+  outline: 0;
+  transform: translateY(-2px);
 }
 
-.popular-table th {
-  color: #707070;
+.access-hero {
+  display: grid;
+  align-content: space-between;
+  min-height: 224px;
+  padding: 16px;
+  background:
+    linear-gradient(135deg, rgba(23, 23, 23, 0.94), rgba(55, 55, 50, 0.92)),
+    #171717;
+  color: #fff;
+}
+
+.access-hero-top,
+.access-hero-footer,
+.rank-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.access-kicker {
+  color: #d9d9d3;
   font-size: 0.78rem;
   font-weight: 800;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
-.popular-table tbody tr {
-  cursor: pointer;
+.access-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
-.popular-table tbody tr:hover,
-.popular-table tbody tr:focus {
-  background: #f7f7f5;
-  outline: 0;
+.access-rank-badge i {
+  color: #f7c948;
 }
 
-.popular-table strong {
+.access-hero h3 {
+  margin: 18px 0 6px;
+  color: #ffffff;
+  font-size: 1.12rem;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.access-hero p {
+  margin: 0;
+  color: #e7e7e2;
+}
+
+.access-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.access-hero-stats div {
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.access-hero-stats strong {
+  display: block;
+  color: #ffffff;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.access-hero-stats span,
+.access-hero-footer {
+  color: #e0e0dc;
+  font-size: 0.82rem;
+}
+
+.access-hero-footer {
+  justify-content: flex-start;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.access-ranking {
+  display: grid;
+  gap: 8px;
+}
+
+.access-rank-item {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+  padding: 11px 12px;
+  background: #fff;
+}
+
+.rank-number {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 8px;
+  background: #f1f1ef;
   color: #171717;
+  font-weight: 850;
 }
 
-.access-count {
+.rank-content {
+  min-width: 0;
+}
+
+.rank-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.rank-main h3 {
+  margin: 0 0 4px;
+  color: #171717;
+  font-size: 0.92rem;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.rank-main p {
+  margin: 0;
+  color: #707070;
+  font-size: 0.82rem;
+}
+
+.rank-main strong {
   display: inline-grid;
   min-width: 34px;
   height: 28px;
@@ -577,7 +751,55 @@ export default {
   border-radius: 999px;
   background: #171717;
   color: #fff;
-  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.rank-progress {
+  height: 6px;
+  overflow: hidden;
+  margin: 9px 0 7px;
+  border-radius: 999px;
+  background: #ededeb;
+}
+
+.rank-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #171717, #0f766e);
+}
+
+.rank-meta {
+  justify-content: flex-start;
+  color: #707070;
+  font-size: 0.78rem;
+}
+
+:global(body.theme-dark) .popular-documents-section,
+:global(body.theme-dark) .access-rank-item {
+  border-color: #3d3d44;
+  background: #232329;
+}
+
+:global(body.theme-dark) .access-hero,
+:global(body.theme-dark) .access-rank-item:hover,
+:global(body.theme-dark) .access-rank-item:focus {
+  border-color: #6b6b73;
+}
+
+:global(body.theme-dark) .rank-number,
+:global(body.theme-dark) .rank-progress {
+  background: #323238;
+}
+
+:global(body.theme-dark) .rank-main h3,
+:global(body.theme-dark) .rank-number {
+  color: #f7f7f5;
+}
+
+:global(body.theme-dark) .rank-main p,
+:global(body.theme-dark) .rank-meta {
+  color: #b9b9bd;
 }
 
 .dashboard-tabs {
@@ -817,6 +1039,10 @@ export default {
 @media (max-width: 850px) {
   .stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .access-insights {
+    grid-template-columns: 1fr;
   }
 }
 

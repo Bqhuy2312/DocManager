@@ -10,6 +10,16 @@ use Illuminate\Validation\Rule;
 
 class DepartmentController extends Controller
 {
+    public function options()
+    {
+        return response()->json(
+            Department::query()
+                ->select(['id', 'name'])
+                ->orderBy('name')
+                ->get()
+        );
+    }
+
     public function index()
     {
         return response()->json(

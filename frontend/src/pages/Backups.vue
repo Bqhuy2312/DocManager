@@ -13,10 +13,6 @@
         <button class="btn btn-dark" type="button" :disabled="creating || restoring" @click="runBackup('full')">
           <i class="fas fa-cloud-download-alt me-2"></i>Backup full
         </button>
-        <button class="btn btn-outline-danger" type="button" :disabled="creating || restoring" @click="$refs.restoreInput?.click()">
-          <i class="fas fa-file-import me-2"></i>Import backup
-        </button>
-        <input ref="restoreInput" class="d-none" type="file" accept=".zip,.sql" @change="restoreFromFile">
       </div>
     </div>
 
@@ -89,6 +85,15 @@
                   >
                     <i class="fas fa-download me-1"></i>Tải
                   </button>
+                  <button
+                    class="btn btn-outline-primary btn-sm"
+                    type="button"
+                    :disabled="backup.status !== 'success' || creating || restoring"
+                    :title="backup.type === 'full' ? 'Import database.sql, không phục hồi file Cloudinary thật' : 'Import database.sql từ backup này'"
+                    @click="restoreFromBackup(backup)"
+                  >
+                    <i class="fas fa-file-import me-1"></i>Import
+                  </button>
                   <button class="btn btn-outline-danger btn-sm" type="button" @click="removeBackup(backup)">
                     <i class="fas fa-trash me-1"></i>Xóa
                   </button>
@@ -110,6 +115,7 @@ import {
   downloadBackup,
   getBackups,
   restoreBackup,
+  restoreStoredBackup,
 } from "@/services/backupService";
 import { confirmDialog, notify } from "@/services/notificationService";
 
@@ -183,6 +189,37 @@ export default {
           message: error.response?.data?.message || "File backup không khả dụng.",
           type: "danger",
         });
+      }
+    },
+    async restoreFromBackup(backup) {
+      const confirmed = await confirmDialog({
+        title: "Import backup",
+        message: backup.type === "full"
+          ? "Backup full sẽ import database.sql vào hệ thống, nhưng không phục hồi file Cloudinary thật. Hệ thống sẽ tự tạo một backup database trước khi import. Bạn muốn tiếp tục?"
+          : "Backup database sẽ import database.sql vào hệ thống và có thể ghi đè dữ liệu hiện tại. Hệ thống sẽ tự tạo một backup database trước khi import. Bạn muốn tiếp tục?",
+        confirmText: "Import backup",
+        tone: "danger",
+      });
+
+      if (!confirmed) return;
+
+      this.restoring = true;
+      try {
+        const result = await restoreStoredBackup(backup);
+        notify({
+          title: "Import backup thành công",
+          message: result.message || "Dữ liệu đã được khôi phục từ backup.",
+          type: "success",
+        });
+        await this.loadBackups();
+      } catch (error) {
+        notify({
+          title: "Không thể import backup",
+          message: error.response?.data?.message || "File backup không hợp lệ hoặc không thể import.",
+          type: "danger",
+        });
+      } finally {
+        this.restoring = false;
       }
     },
     async restoreFromFile(event) {

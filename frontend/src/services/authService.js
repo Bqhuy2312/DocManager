@@ -1,5 +1,26 @@
 import api from "./api";
 
+const GUEST_DEVICE_KEY = 'guest_device_id'
+
+const createGuestDeviceId = () => {
+  if (window.crypto?.randomUUID) {
+    return window.crypto.randomUUID()
+  }
+
+  return `guest-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`
+}
+
+const getGuestDeviceId = () => {
+  let guestDeviceId = localStorage.getItem(GUEST_DEVICE_KEY)
+
+  if (!guestDeviceId) {
+    guestDeviceId = createGuestDeviceId()
+    localStorage.setItem(GUEST_DEVICE_KEY, guestDeviceId)
+  }
+
+  return guestDeviceId
+}
+
 export const login = async (email, password, twoFactorCode = "") => {
   const payload = { email, password }
   if (twoFactorCode) payload.two_factor_code = twoFactorCode
@@ -9,9 +30,22 @@ export const login = async (email, password, twoFactorCode = "") => {
   return response.data
 }
 
-export const guestLogin = async () => {
-  const response = await api.post('/guest-login')
+export const register = async (payload) => {
+  const response = await api.post('/register', payload)
   localStorage.setItem('token', response.data.token)
+  return response.data
+}
+
+export const guestLogin = async () => {
+  const response = await api.post('/guest-login', {
+    guest_device_id: getGuestDeviceId(),
+  })
+  localStorage.setItem('token', response.data.token)
+  return response.data
+}
+
+export const getDepartmentOptions = async () => {
+  const response = await api.get('/departments/options')
   return response.data
 }
 

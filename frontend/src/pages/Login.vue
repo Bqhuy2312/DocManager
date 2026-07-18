@@ -10,14 +10,45 @@
 
     <section class="login-card">
       <div class="login-card-heading">
-        <h2>Đăng nhập</h2>
-        <p>Nhập thông tin đăng nhập của bạn</p>
+        <h2>{{ isRegisterMode ? "Đăng ký" : "Đăng nhập" }}</h2>
+        <p>{{ isRegisterMode ? "Tạo tài khoản người xem để truy cập hệ thống" : "Nhập thông tin đăng nhập của bạn" }}</p>
       </div>
 
-      <form @submit.prevent="handleLogin">
+      <div v-if="!requiresTwoFactor" class="auth-mode-switch" role="tablist" aria-label="Chọn chế độ xác thực">
+        <button
+          type="button"
+          :class="{ active: !isRegisterMode }"
+          @click="setAuthMode('login')"
+        >
+          Đăng nhập
+        </button>
+        <button
+          type="button"
+          :class="{ active: isRegisterMode }"
+          @click="setAuthMode('register')"
+        >
+          Đăng ký
+        </button>
+      </div>
+
+      <form @submit.prevent="isRegisterMode ? handleRegister() : handleLogin()">
         <div v-if="error" class="alert alert-danger" role="alert">
           {{ error }}
         </div>
+
+        <label v-if="isRegisterMode" class="login-field" for="full-name">
+          <span>Họ tên</span>
+          <div class="input-shell">
+            <i class="far fa-user"></i>
+            <input
+              id="full-name"
+              v-model="fullName"
+              type="text"
+              required
+              placeholder="Nhập họ tên"
+            >
+          </div>
+        </label>
 
         <label class="login-field" for="email">
           <span>Email</span>
@@ -31,6 +62,24 @@
               required
               placeholder="email@company.com"
             >
+          </div>
+        </label>
+
+        <label v-if="isRegisterMode" class="login-field" for="department">
+          <span>Phòng ban</span>
+          <div class="input-shell">
+            <i class="far fa-building"></i>
+            <select
+              id="department"
+              v-model="departmentId"
+              required
+              :disabled="departmentsLoading"
+            >
+              <option value="">{{ departmentsLoading ? "Đang tải phòng ban..." : "Chọn phòng ban" }}</option>
+              <option v-for="department in departments" :key="department.id" :value="department.id">
+                {{ department.name }}
+              </option>
+            </select>
           </div>
         </label>
 
@@ -49,7 +98,21 @@
           </div>
         </label>
 
-        <div v-if="requiresTwoFactor" class="login-field">
+        <label v-if="isRegisterMode" class="login-field" for="password-confirmation">
+          <span>Xác nhận mật khẩu</span>
+          <div class="input-shell">
+            <i class="fas fa-lock"></i>
+            <input
+              id="password-confirmation"
+              v-model="passwordConfirmation"
+              type="password"
+              required
+              placeholder="Nhập lại mật khẩu"
+            >
+          </div>
+        </label>
+
+        <div v-if="requiresTwoFactor && !isRegisterMode" class="login-field">
           <label for="two-factor-code">Mã xác thực 2FA</label>
           <div class="two-factor-entry" @click="$refs.twoFactorInput?.focus()">
             <span
@@ -74,15 +137,15 @@
         </div>
 
         <button type="submit" class="login-submit" :disabled="loading">
-          {{ loading ? "Đang đăng nhập..." : (requiresTwoFactor ? "Xác nhận 2FA" : "Đăng nhập") }}
+          {{ submitLabel }}
         </button>
 
-        <div v-if="!requiresTwoFactor" class="login-divider">
+        <div v-if="!requiresTwoFactor && !isRegisterMode" class="login-divider">
           <span>hoặc</span>
         </div>
 
         <button
-          v-if="!requiresTwoFactor"
+          v-if="!requiresTwoFactor && !isRegisterMode"
           type="button"
           class="guest-login-button"
           :disabled="loading"
@@ -106,20 +169,68 @@
 </template>
 
 <script>
-import { guestLogin, login } from "@/services/authService";
+import { getDepartmentOptions, guestLogin, login, register } from "@/services/authService";
 
 export default {
   data() {
     return {
+      isRegisterMode: false,
+      fullName: "",
       email: "",
       password: "",
+      passwordConfirmation: "",
+      departmentId: "",
+      departments: [],
+      departmentsLoading: false,
       twoFactorCode: "",
       requiresTwoFactor: false,
       error: "",
       loading: false,
     };
   },
+  computed: {
+    submitLabel() {
+      if (this.loading) {
+        return this.isRegisterMode ? "Đang đăng ký..." : "Đang đăng nhập...";
+      }
+
+      if (this.requiresTwoFactor && !this.isRegisterMode) {
+        return "Xác nhận 2FA";
+      }
+
+      return this.isRegisterMode ? "Đăng ký" : "Đăng nhập";
+    },
+  },
+  mounted() {
+    this.loadDepartments();
+  },
   methods: {
+    setAuthMode(mode) {
+      this.isRegisterMode = mode === "register";
+      this.error = "";
+      this.requiresTwoFactor = false;
+      this.twoFactorCode = "";
+    },
+    async loadDepartments() {
+      this.departmentsLoading = true;
+
+      try {
+        this.departments = await getDepartmentOptions();
+      } catch {
+        this.departments = [];
+      } finally {
+        this.departmentsLoading = false;
+      }
+    },
+    getErrorMessage(err, fallback) {
+      const errors = err.response?.data?.errors;
+
+      if (errors) {
+        return Object.values(errors).flat()[0] || fallback;
+      }
+
+      return err.response?.data?.message || fallback;
+    },
     async handleLogin() {
       this.error = "";
       this.loading = true;
@@ -138,6 +249,33 @@ export default {
         }
 
         this.error = err.response?.data?.message || "Lỗi đăng nhập. Vui lòng thử lại.";
+      } finally {
+        this.loading = false;
+      }
+    },
+    async handleRegister() {
+      this.error = "";
+
+      if (this.password !== this.passwordConfirmation) {
+        this.error = "Mật khẩu xác nhận không khớp.";
+        return;
+      }
+
+      this.loading = true;
+
+      try {
+        const data = await register({
+          full_name: this.fullName,
+          email: this.email,
+          password: this.password,
+          password_confirmation: this.passwordConfirmation,
+          department_id: this.departmentId,
+        });
+
+        localStorage.setItem("user", JSON.stringify(data.user));
+        this.$router.push("/dashboard");
+      } catch (err) {
+        this.error = this.getErrorMessage(err, "Không thể đăng ký tài khoản. Vui lòng thử lại.");
       } finally {
         this.loading = false;
       }
@@ -236,6 +374,31 @@ export default {
   color: #707070;
 }
 
+.auth-mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 5px;
+  margin-bottom: 22px;
+  border: 1px solid #dededb;
+  border-radius: 8px;
+  background: #f6f6f4;
+}
+
+.auth-mode-switch button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #707070;
+  font-weight: 800;
+}
+
+.auth-mode-switch button.active {
+  background: #171717;
+  color: #ffffff;
+}
+
 .login-field {
   display: grid;
   gap: 10px;
@@ -265,13 +428,18 @@ export default {
   border-color: #171717;
 }
 
-.input-shell input {
+.input-shell input,
+.input-shell select {
   width: 100%;
   border: 0;
   outline: 0;
   background: transparent;
   color: #171717;
   font-size: 0.95rem;
+}
+
+.input-shell select {
+  cursor: pointer;
 }
 
 .input-shell input::placeholder {

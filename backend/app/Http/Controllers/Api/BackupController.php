@@ -82,6 +82,37 @@ class BackupController extends Controller
         return response()->download($path, $backup->file_name);
     }
 
+    public function restoreStored(Request $request, Backup $backup, BackupService $backupService, BackupRestoreService $restoreService): JsonResponse
+    {
+        abort_unless($backup->status === 'success' && $backup->file_path, 404);
+
+        $path = storage_path('app/' . $backup->file_path);
+        abort_unless(File::exists($path), 404);
+
+        $safetyBackup = Backup::create([
+            'created_by' => $request->user()->id,
+            'type' => 'database',
+            'status' => 'pending',
+            'message' => 'Auto backup before database restore.',
+        ]);
+
+        $safetyBackup = $backupService->run($safetyBackup);
+        if ($safetyBackup->status !== 'success') {
+            return response()->json([
+                'message' => 'KhÃ´ng thá»ƒ táº¡o backup an toÃ n trÆ°á»›c khi import.',
+                'backup' => $this->format($safetyBackup),
+            ], 500);
+        }
+
+        $result = $restoreService->restorePath($path, $backup->file_name);
+
+        return response()->json([
+            'message' => 'Import backup thÃ nh cÃ´ng. Báº¡n cÃ³ thá»ƒ cáº§n Ä‘Äƒng nháº­p láº¡i náº¿u dá»¯ liá»‡u tÃ i khoáº£n/token Ä‘Ã£ thay Ä‘á»•i.',
+            'executed_statements' => $result['executed_statements'],
+            'safety_backup' => $this->format($safetyBackup),
+        ]);
+    }
+
     public function destroy(Backup $backup): JsonResponse
     {
         if ($backup->file_path) {

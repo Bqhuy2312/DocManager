@@ -12,7 +12,9 @@ use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\UserController;
 
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register']);
 Route::post('/guest-login', [AuthController::class, 'guestLogin']);
+Route::get('/departments/options', [DepartmentController::class, 'options']);
 Route::middleware(['auth:sanctum', 'guest.active'])->group(function () {
 
     Route::get('/me', [AuthController::class, 'me']);
@@ -60,6 +62,7 @@ Route::middleware(['auth:sanctum', 'guest.active'])->group(function () {
         Route::get('/backups', [BackupController::class, 'index']);
         Route::post('/backups', [BackupController::class, 'store']);
         Route::post('/backups/restore', [BackupController::class, 'restore']);
+        Route::post('/backups/{backup}/restore', [BackupController::class, 'restoreStored']);
         Route::get('/backups/{backup}/download', [BackupController::class, 'download']);
         Route::delete('/backups/{backup}', [BackupController::class, 'destroy']);
         Route::patch('/documents/{document}/approval', [DocumentController::class, 'approve']);

@@ -29,6 +29,24 @@ class BackupRestoreService
         }
     }
 
+    public function restorePath(string $path, ?string $fileName = null): array
+    {
+        $workDir = storage_path('app/backups/restore/' . (string) Str::uuid());
+        File::ensureDirectoryExists($workDir);
+
+        try {
+            $sqlPath = $this->extractDatabaseSqlFromPath($path, $fileName ?: basename($path), $workDir);
+            $statements = $this->splitSqlStatements(File::get($sqlPath));
+            $executed = $this->importStatements($statements);
+
+            return [
+                'executed_statements' => $executed,
+            ];
+        } finally {
+            File::deleteDirectory($workDir);
+        }
+    }
+
     private function extractDatabaseSql(UploadedFile $file, string $workDir): string
     {
         $extension = strtolower($file->getClientOriginalExtension());
@@ -59,6 +77,46 @@ class BackupRestoreService
         if (! $stream) {
             $zip->close();
             throw new RuntimeException('Không thể đọc database.sql trong file backup.');
+        }
+
+        $sqlPath = $workDir . DIRECTORY_SEPARATOR . 'database.sql';
+        File::put($sqlPath, stream_get_contents($stream));
+        fclose($stream);
+        $zip->close();
+
+        return $sqlPath;
+    }
+
+    private function extractDatabaseSqlFromPath(string $path, string $fileName, string $workDir): string
+    {
+        $extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+
+        if ($extension === 'sql') {
+            $sqlPath = $workDir . DIRECTORY_SEPARATOR . 'database.sql';
+            File::copy($path, $sqlPath);
+
+            return $sqlPath;
+        }
+
+        if ($extension !== 'zip') {
+            throw new RuntimeException('File import pháº£i lÃ  .zip hoáº·c .sql.');
+        }
+
+        $zip = new ZipArchive();
+        if ($zip->open($path) !== true) {
+            throw new RuntimeException('KhÃ´ng thá»ƒ má»Ÿ file backup zip.');
+        }
+
+        $databaseIndex = $zip->locateName('database.sql', ZipArchive::FL_NODIR);
+        if ($databaseIndex === false) {
+            $zip->close();
+            throw new RuntimeException('KhÃ´ng tÃ¬m tháº¥y database.sql trong file backup.');
+        }
+
+        $stream = $zip->getStream($zip->getNameIndex($databaseIndex));
+        if (! $stream) {
+            $zip->close();
+            throw new RuntimeException('KhÃ´ng thá»ƒ Ä‘á»c database.sql trong file backup.');
         }
 
         $sqlPath = $workDir . DIRECTORY_SEPARATOR . 'database.sql';

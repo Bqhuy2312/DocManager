@@ -27,30 +27,36 @@ class DocumentController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        $user = $request->user();
         $status = $request->query('status');
+        $validStatus = in_array($status, ['approved', 'pending', 'rejected'], true);
+        $mineOnly = $request->boolean('mine') && in_array($user->role, ['admin', 'editor'], true);
 
-        $documents = Document::query()
+        $query = Document::query()
             ->with(['folder.parent', 'creator.department', 'approver', 'tags'])
             ->withExists([
-                'favoritedBy as is_favorite' => fn ($query) => $query->where('user_id', $request->user()->id),
-            ])
-            ->when(
-                $request->user()->role === 'admin' && in_array($status, ['approved', 'pending', 'rejected'], true),
-                fn ($query) => $query->where('status', $status),
-                function ($query): void {
-                    $query->where('status', 'approved');
-                }
-            )
-            ->when($request->user()->role === 'viewer', function ($query): void {
-                $query->where('status', 'approved');
-            })
-            ->when($request->user()->role === 'editor', function ($query) use ($request): void {
-                $query->where(function ($query) use ($request): void {
-                    $query
-                        ->where('status', 'approved')
-                        ->orWhere('created_by', $request->user()->id);
-                });
-            })
+                'favoritedBy as is_favorite' => fn ($query) => $query->where('user_id', $user->id),
+            ]);
+
+        if ($mineOnly) {
+            $query->where('created_by', $user->id);
+
+            if ($validStatus) {
+                $query->where('status', $status);
+            }
+        } elseif ($user->role === 'admin' && $validStatus) {
+            $query->where('status', $status);
+        } elseif ($user->role === 'editor') {
+            $query->where(function ($query) use ($user): void {
+                $query
+                    ->where('status', 'approved')
+                    ->orWhere('created_by', $user->id);
+            });
+        } else {
+            $query->where('status', 'approved');
+        }
+
+        $documents = $query
             ->latest()
             ->get()
             ->map(fn (Document $document) => $this->format($document));

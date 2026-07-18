@@ -4,8 +4,8 @@
 
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
 
-    <div class="row mb-4">
-      <div class="col-md-6">
+    <div class="row mb-4 g-3 align-items-center">
+      <div :class="canFilterMine ? 'col-md-5' : 'col-md-6'">
         <input v-model="searchQuery" type="text" class="form-control" placeholder="Tìm kiếm theo tên hoặc tag...">
       </div>
       <div class="col-md-3">
@@ -14,11 +14,22 @@
           <option v-for="category in categories" :key="category" :value="category">{{ category }}</option>
         </select>
       </div>
-      <div class="col-md-3">
+      <div :class="canFilterMine ? 'col-md-2' : 'col-md-3'">
         <select v-model="sortBy" class="form-select">
           <option value="recent">Gần đây</option>
           <option value="name">A - Z</option>
         </select>
+      </div>
+      <div v-if="canFilterMine" class="col-md-2">
+        <button
+          type="button"
+          class="btn mine-filter-btn w-100"
+          :class="{ active: mineOnly }"
+          @click="toggleMineOnly"
+        >
+          <i class="fas fa-user-edit me-1"></i>
+          {{ mineOnly ? "Tất cả" : "Của tôi" }}
+        </button>
       </div>
     </div>
 
@@ -122,6 +133,7 @@ export default {
       searchQuery: "",
       selectedCategory: "",
       sortBy: "recent",
+      mineOnly: false,
       currentPage: 1,
       itemsPerPage: 15,
       loading: false,
@@ -129,6 +141,16 @@ export default {
     };
   },
   computed: {
+    currentUser() {
+      try {
+        return JSON.parse(localStorage.getItem("user")) || null;
+      } catch {
+        return null;
+      }
+    },
+    canFilterMine() {
+      return ["admin", "editor"].includes(this.currentUser?.role);
+    },
     categories() {
       return [...new Set(this.documents.map((document) => document.category).filter(Boolean))];
     },
@@ -172,12 +194,17 @@ export default {
       this.loading = true;
       this.error = "";
       try {
-        this.documents = await getDocuments();
+        this.documents = await getDocuments(this.mineOnly ? { mine: 1 } : {});
       } catch (error) {
         this.error = error.response?.data?.message || "Không thể tải danh sách tài liệu.";
       } finally {
         this.loading = false;
       }
+    },
+    async toggleMineOnly() {
+      this.mineOnly = !this.mineOnly;
+      this.currentPage = 1;
+      await this.loadDocuments();
     },
     viewDocument(id) {
       this.$router.push(`/documents/${id}`);
@@ -274,6 +301,19 @@ export default {
   gap: 6px;
   color: #707070;
   font-size: 0.78rem;
+}
+
+.mine-filter-btn {
+  border: 1px solid #171717;
+  background: #fff;
+  color: #171717;
+  font-weight: 700;
+}
+
+.mine-filter-btn:hover,
+.mine-filter-btn.active {
+  background: #171717;
+  color: #fff;
 }
 
 .card-title {

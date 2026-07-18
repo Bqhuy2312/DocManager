@@ -23,6 +23,11 @@ export const restoreBackup = async (file) => {
   return response.data;
 };
 
+export const restoreStoredBackup = async (backup) => {
+  const response = await api.post(`/backups/${backup.id}/restore`);
+  return response.data;
+};
+
 export const downloadBackup = async (backup) => {
   const response = await api.get(`/backups/${backup.id}/download`, {
     responseType: "blob",
