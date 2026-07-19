@@ -132,14 +132,33 @@
                 <label class="form-label">Tag, phân cách bằng dấu phẩy</label>
                 <input v-model.trim="updateForm.tags" class="form-control" type="text">
               </div>
-              <div>
-                <label class="form-label">Danh mục / thư mục con</label>
-                <select v-model="updateForm.folder_id" class="form-select" required>
-                  <option value="">-- Chọn danh mục --</option>
-                  <option v-for="folder in folderOptions" :key="folder.id" :value="folder.id">
-                    {{ folder.parent?.name || "Không rõ" }} / {{ folder.name }}
-                  </option>
-                </select>
+              <div class="update-folder-fields">
+                <div>
+                  <label class="form-label">Danh mục cha</label>
+                  <select
+                    v-model="updateForm.parent_folder_id"
+                    class="form-select"
+                    required
+                    @change="updateForm.folder_id = ''"
+                  >
+                    <option value="">-- Chọn danh mục cha --</option>
+                    <option v-for="folder in parentFolderOptions" :key="folder.id" :value="folder.id">
+                      {{ folder.name }}
+                    </option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="form-label">Danh mục con</label>
+                  <select v-model="updateForm.folder_id" class="form-select" :disabled="!updateForm.parent_folder_id" required>
+                    <option value="">
+                      {{ updateForm.parent_folder_id ? "-- Chọn danh mục con --" : "-- Chọn danh mục cha trước --" }}
+                    </option>
+                    <option v-for="folder in childFolderOptions" :key="folder.id" :value="folder.id">
+                      {{ folder.name }}
+                    </option>
+                  </select>
+                </div>
               </div>
               <div>
                 <label class="form-label">File phiên bản mới (không bắt buộc)</label>
@@ -195,6 +214,7 @@ export default {
       updateForm: {
         title: "",
         description: "",
+        parent_folder_id: "",
         folder_id: "",
         tags: "",
         file: null,
@@ -245,6 +265,18 @@ export default {
 
       return this.document.file_path;
     },
+    parentFolderOptions() {
+      const parents = new Map();
+      this.folderOptions.forEach((folder) => {
+        if (folder.parent) parents.set(folder.parent.id, folder.parent);
+      });
+      return [...parents.values()].sort((a, b) => a.name.localeCompare(b.name));
+    },
+    childFolderOptions() {
+      return this.folderOptions
+        .filter((folder) => String(folder.parent_id) === String(this.updateForm.parent_folder_id))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    },
   },
   async mounted() {
     await this.loadDocument();
@@ -258,9 +290,11 @@ export default {
       }
     },
     fillUpdateForm() {
+      const currentFolder = this.folderOptions.find((folder) => String(folder.id) === String(this.document?.folder_id));
       this.updateForm = {
         title: this.document?.title || "",
         description: this.document?.description || "",
+        parent_folder_id: currentFolder?.parent_id || currentFolder?.parent?.id || "",
         folder_id: this.document?.folder_id || "",
         tags: (this.document?.tags || []).join(", "),
         file: null,

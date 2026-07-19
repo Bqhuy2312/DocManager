@@ -1390,6 +1390,64 @@ body.theme-dark .preview-collapsed {
   cursor: text !important;
 }
 
+body.theme-dark .document-card-preview {
+  border-color: #3f3f46 !important;
+  background: #1f1f23 !important;
+}
+
+body.theme-dark .document-preview-frame {
+  background: #242428 !important;
+}
+
+body.theme-dark .document-preview-placeholder,
+body.theme-dark .document-card-meta {
+  color: #a1a1aa !important;
+}
+
+body.theme-dark .document-preview-placeholder i {
+  color: #f4f4f5 !important;
+}
+
+body.theme-dark .document-status-badge,
+body.theme-dark .document-info-tooltip {
+  border-color: #52525b !important;
+  background: #242428 !important;
+  color: #d4d4d8 !important;
+}
+
+body.theme-dark .document-info-tooltip strong {
+  color: #f4f4f5 !important;
+}
+
+body.theme-dark .document-info-tooltip i,
+body.theme-dark .document-info-button {
+  color: #d4d4d8 !important;
+}
+
+body.theme-dark .document-info-button:hover,
+body.theme-dark .document-info-button:focus {
+  background: #f4f4f5 !important;
+  color: #18181b !important;
+}
+
+body.theme-dark .document-version {
+  border-color: #3f3f46 !important;
+  background: #34343a !important;
+  color: #a1a1aa !important;
+}
+
+body.theme-dark .document-card-categories .badge.bg-primary {
+  border-color: #374151 !important;
+  background: #1e293b !important;
+  color: #bfdbfe !important;
+}
+
+body.theme-dark .document-card-categories .badge.bg-success {
+  border-color: #14532d !important;
+  background: #143322 !important;
+  color: #bbf7d0 !important;
+}
+
 @media (max-width: 575px) {
   .login-page {
     padding: 18px 12px 32px !important;

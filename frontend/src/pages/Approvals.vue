@@ -57,77 +57,15 @@
 
     <div v-else class="row g-4">
       <div v-for="document in paginatedDocuments" :key="document.id" class="col-md-6 col-lg-4">
-        <div
-          class="card favorite-document-card h-100"
-          role="button"
-          tabindex="0"
-          @click="viewDocument(document.id)"
-          @keydown.enter="viewDocument(document.id)"
-          @keydown.space.prevent="viewDocument(document.id)"
-        >
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start mb-3">
-              <div>
-                <h5 class="card-title fw-bold">
-                  {{ document.title }}
-                </h5>
-
-                <span class="badge bg-primary me-2">
-                  {{ document.category }}
-                </span>
-
-                <span class="badge bg-success">
-                  {{ document.folder }}
-                </span>
-              </div>
-
-              <span class="badge bg-light text-dark border">
-                {{ statusLabel(document.status) }}
-              </span>
-            </div>
-
-            <p class="text-muted">
-              {{ document.description || "Không có mô tả." }}
-            </p>
-
-            <div class="mb-3">
-              <span
-                v-for="tag in document.tags || []"
-                :key="tag"
-                class="badge rounded-pill bg-light text-dark border me-1"
-              >
-                {{ tag }}
-              </span>
-            </div>
-          </div>
-
-          <div class="card-footer bg-white d-flex justify-content-between align-items-center">
-            <div class="favorite-document-meta">
-              <span><i class="fas fa-user me-1"></i>Người đăng: {{ document.author || "Không rõ" }}</span>
-              <span><i class="fas fa-building me-1"></i>Phòng ban: {{ document.department || "Chưa có phòng ban" }}</span>
-              <span><i class="fas fa-clock me-1"></i>Cập nhật: {{ formatDateTime(document.updated_at) }}</span>
-              <span><i class="fas fa-eye me-1"></i>Lượt truy cập: {{ document.access_count || 0 }}</span>
-              <span><i class="fas fa-weight-hanging me-1"></i>Kích thước: {{ formatFileSize(document.file_size) }}</span>
-              <span><i class="fas fa-upload me-1"></i>Tải lên: {{ formatDate(document.created_at) }}</span>
-            </div>
-
-            <div>
-              <div v-if="document.status === 'pending'" class="d-flex gap-2">
-                <button class="btn btn-outline-secondary btn-sm" @click.stop="setApproval(document, 'rejected')">
-                  <i class="fas fa-xmark me-1"></i>Từ chối
-                </button>
-                <button class="btn btn-success btn-sm" @click.stop="setApproval(document, 'approved')">
-                  <i class="fas fa-check me-1"></i>Phê duyệt
-                </button>
-              </div>
-
-              <button v-else-if="document.status === 'approved'" class="btn btn-outline-success btn-sm" @click.stop="download(document)">
-                <i class="fas fa-download"></i>
-                Tải xuống
-              </button>
-            </div>
-          </div>
-        </div>
+        <DocumentCard
+          :document="document"
+          :show-status="true"
+          :show-approval-actions="selectedStatus === 'pending'"
+          @view="viewDocument"
+          @toggle-favorite="toggleFavorite"
+          @approve="setApproval"
+          @download="download"
+        />
       </div>
     </div>
 
@@ -143,13 +81,14 @@
 
 <script>
 import PaginationControls from "@/components/common/PaginationControls.vue";
+import DocumentCard from "@/components/common/DocumentCard.vue";
 import Loading from "@/components/common/Loading.vue";
-import { approveDocument, downloadDocumentFile, getDocuments } from "@/services/documentService";
+import { approveDocument, downloadDocumentFile, getDocuments, toggleFavoriteDocument } from "@/services/documentService";
 import { confirmDialog, notify } from "@/services/notificationService";
 
 export default {
   name: "Approvals",
-  components: { PaginationControls, Loading },
+  components: { PaginationControls, DocumentCard, Loading },
   data() {
     return {
       documents: [],
@@ -201,6 +140,14 @@ export default {
         await downloadDocumentFile(document);
       } catch (error) {
         this.error = error.response?.data?.message || "Không thể tải xuống tài liệu.";
+      }
+    },
+    async toggleFavorite(document) {
+      try {
+        const result = await toggleFavoriteDocument(document.id);
+        document.is_favorite = result.is_favorite;
+      } catch (error) {
+        this.error = error.response?.data?.message || "Không thể cập nhật đánh dấu.";
       }
     },
     async setApproval(document, status) {

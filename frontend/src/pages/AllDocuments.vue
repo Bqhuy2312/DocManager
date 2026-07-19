@@ -38,74 +38,12 @@
 
     <div v-else class="row g-4">
       <div v-for="document in paginatedDocuments" :key="document.id" class="col-md-6 col-lg-4">
-        <div
-          class="card favorite-document-card h-100"
-          role="button"
-          tabindex="0"
-          @click="viewDocument(document.id)"
-          @keydown.enter="viewDocument(document.id)"
-          @keydown.space.prevent="viewDocument(document.id)"
-        >
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start mb-3">
-              <div>
-                <h5 class="card-title fw-bold">
-                  {{ document.title }}
-                </h5>
-
-                <span class="badge bg-primary me-2">
-                  {{ document.category }}
-                </span>
-
-                <span class="badge bg-success">
-                  {{ document.folder }}
-                </span>
-              </div>
-
-              <button
-                class="favorite-star"
-                type="button"
-                :class="{ active: document.is_favorite }"
-                :aria-label="document.is_favorite ? 'Bỏ đánh dấu' : 'Thêm đánh dấu'"
-                @click.stop="toggleFavorite(document)"
-              >
-                <i class="fas fa-star"></i>
-              </button>
-            </div>
-
-            <p class="text-muted">
-              {{ document.description || "Không có mô tả." }}
-            </p>
-
-            <div class="mb-3">
-              <span
-                v-for="tag in document.tags || []"
-                :key="tag"
-                class="badge rounded-pill bg-light text-dark border me-1"
-              >
-                {{ tag }}
-              </span>
-            </div>
-          </div>
-
-          <div class="card-footer bg-white d-flex justify-content-between align-items-center">
-            <div class="favorite-document-meta">
-              <span><i class="fas fa-user me-1"></i>Người đăng: {{ document.author || "Không rõ" }}</span>
-              <span><i class="fas fa-building me-1"></i>Phòng ban: {{ document.department || "Chưa có phòng ban" }}</span>
-              <span><i class="fas fa-clock me-1"></i>Cập nhật: {{ formatDateTime(document.updated_at) }}</span>
-              <span><i class="fas fa-eye me-1"></i>Lượt truy cập: {{ document.access_count || 0 }}</span>
-              <span><i class="fas fa-weight-hanging me-1"></i>Kích thước: {{ formatFileSize(document.file_size) }}</span>
-              <span><i class="fas fa-upload me-1"></i>Tải lên: {{ formatDate(document.created_at) }}</span>
-            </div>
-
-            <div>
-              <button v-if="document.status === 'approved'" class="btn btn-outline-success btn-sm" @click.stop="downloadDocument(document)">
-                <i class="fas fa-download"></i>
-                Tải xuống
-              </button>
-            </div>
-          </div>
-        </div>
+        <DocumentCard
+          :document="document"
+          @view="viewDocument"
+          @toggle-favorite="toggleFavorite"
+          @download="downloadDocument"
+        />
       </div>
     </div>
 
@@ -121,12 +59,13 @@
 
 <script>
 import PaginationControls from "@/components/common/PaginationControls.vue";
+import DocumentCard from "@/components/common/DocumentCard.vue";
 import Loading from "@/components/common/Loading.vue";
 import { downloadDocumentFile, getDocuments, toggleFavoriteDocument } from "@/services/documentService";
 
 export default {
   name: "AllDocuments",
-  components: { PaginationControls, Loading },
+  components: { PaginationControls, DocumentCard, Loading },
   data() {
     return {
       documents: [],
