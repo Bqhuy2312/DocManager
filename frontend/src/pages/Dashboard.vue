@@ -113,7 +113,7 @@
       <button type="button" :class="{ active: activeTab === 'favorites' }" @click="activeTab = 'favorites'">
         <i class="fas fa-star me-2"></i>Đánh dấu
       </button>
-      <button type="button" :class="{ active: activeTab === 'activity' }" @click="activeTab = 'activity'">
+      <button v-if="isAdmin" type="button" :class="{ active: activeTab === 'activity' }" @click="activeTab = 'activity'">
         <i class="fas fa-list-check me-2"></i>Hoạt động gần đây
       </button>
     </div>
@@ -273,6 +273,16 @@ export default {
         { key: "pending", label: "Chờ duyệt", value: this.stats.pending, icon: "fas fa-clock" },
       ];
     },
+    currentUser() {
+      try {
+        return JSON.parse(localStorage.getItem("user")) || null;
+      } catch {
+        return null;
+      }
+    },
+    isAdmin() {
+      return this.currentUser?.role === "admin";
+    },
     activeDocuments() {
       return this.activeTab === "recent" ? this.recentDocuments : this.favoriteDocuments;
     },
@@ -296,7 +306,9 @@ export default {
   },
   async mounted() {
     await this.loadDashboard();
-    this.unsubscribeActivity = subscribeRealtimeActivity(this.handleRealtimeActivity);
+    if (this.isAdmin) {
+      this.unsubscribeActivity = subscribeRealtimeActivity(this.handleRealtimeActivity);
+    }
   },
   beforeUnmount() {
     this.unsubscribeActivity?.();
@@ -312,7 +324,7 @@ export default {
         this.recentDocuments = data.recent_documents || [];
         this.favoriteDocuments = data.favorite_documents || [];
         this.popularDocuments = data.popular_documents || [];
-        this.activities = data.activities || [];
+        this.activities = this.isAdmin ? (data.activities || []) : [];
       } catch (error) {
         this.error = error.response?.data?.message || "Không thể tải dữ liệu dashboard.";
       } finally {
@@ -352,6 +364,8 @@ export default {
       );
     },
     handleRealtimeActivity(payload = {}) {
+      if (!this.isAdmin) return;
+
       const activity = payload.activity;
       if (!activity?.id) return;
 

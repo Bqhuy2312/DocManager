@@ -45,6 +45,14 @@ class DashboardController extends Controller
             $pendingQuery->whereRaw('1 = 0');
         }
 
+        $activities = $user->role === 'admin'
+            ? ActivityLog::query()
+                ->with('user:id,full_name,avatar')
+                ->latest()
+                ->get()
+                ->map(fn (ActivityLog $activity) => $this->formatActivity($activity))
+            : collect();
+
         return response()->json([
             'stats' => [
                 'documents' => (clone $approvedDocuments)->count(),
@@ -56,11 +64,7 @@ class DashboardController extends Controller
             'recent_documents' => $recentDocuments,
             'favorite_documents' => $favoriteDocuments,
             'popular_documents' => $this->popularDocuments(),
-            'activities' => ActivityLog::query()
-                ->with('user:id,full_name,avatar')
-                ->latest()
-                ->get()
-                ->map(fn (ActivityLog $activity) => $this->formatActivity($activity)),
+            'activities' => $activities,
         ]);
     }
 
