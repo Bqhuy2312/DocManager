@@ -99,6 +99,7 @@ import {
   updateDepartment,
 } from "@/services/departmentService";
 import { confirmDialog, notify } from "@/services/notificationService";
+import realtimeRefresh from "@/mixins/realtimeRefresh";
 
 const emptyForm = () => ({
   name: "",
@@ -107,6 +108,8 @@ const emptyForm = () => ({
 
 export default {
   name: "Departments",
+  mixins: [realtimeRefresh],
+  realtimeScopes: ["department", "member"],
   components: { Loading },
   data() {
     return {
@@ -144,6 +147,9 @@ export default {
     await this.loadDepartments();
   },
   methods: {
+    refreshRealtimeData() {
+      return this.loadDepartments();
+    },
     async loadDepartments() {
       this.loading = true;
       this.error = "";

@@ -4,6 +4,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const activityRoutes = require("./routes/activity.routes");
 const notificationRoutes = require("./routes/notification.routes");
+const dataRoutes = require("./routes/data.routes");
 const { initSocket } = require("./socket");
 
 dotenv.config({ path: `${__dirname}/.env` });
@@ -27,6 +28,7 @@ app.get("/health", (req, res) => {
 
 app.use("/api/activities", activityRoutes(io));
 app.use("/api/notifications", notificationRoutes(io));
+app.use("/api/data-changes", dataRoutes(io));
 
 server.listen(port, () => {
   console.log(`Realtime service listening on http://127.0.0.1:${port}`);

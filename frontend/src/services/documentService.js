@@ -10,6 +10,13 @@ export const getDocument = async (id) => {
   return response.data;
 };
 
+export const getDocumentPreview = async (id) => {
+  const response = await api.get(`/documents/${id}/preview`, {
+    responseType: "blob",
+  });
+  return response.data;
+};
+
 export const downloadDocumentFile = async (documentItem) => {
   const response = await api.get(`/documents/${documentItem.id}/download`, {
     responseType: "blob",

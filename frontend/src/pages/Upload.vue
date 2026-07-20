@@ -194,11 +194,14 @@
 <script>
 import { getDocumentMetadata, uploadDocument } from "@/services/documentService";
 import { APP_SETTINGS_EVENT, isAutoSaveEnabled } from "@/services/appSettingsService";
+import realtimeRefresh from "@/mixins/realtimeRefresh";
 
 const DRAFT_KEY = "docmanager_upload_draft";
 
 export default {
   name: "Upload",
+  mixins: [realtimeRefresh],
+  realtimeScopes: ["folder"],
   data() {
     return {
       metadata: { folders: [] },
@@ -284,6 +287,17 @@ export default {
     },
   },
   methods: {
+    async refreshRealtimeData() {
+      const selectedParentId = this.selectedParentId;
+      const selectedFolderId = this.form.folderId;
+      this.metadata = await getDocumentMetadata();
+      this.selectedParentId = this.parentFolders.some((folder) => folder.id === selectedParentId)
+        ? selectedParentId
+        : this.parentFolders[0]?.id || "";
+      this.form.folderId = this.metadata.folders.some((folder) => folder.id === selectedFolderId)
+        ? selectedFolderId
+        : "";
+    },
     handleSettingsChange(event) {
       if (!event.detail?.auto_save) {
         localStorage.removeItem(DRAFT_KEY);

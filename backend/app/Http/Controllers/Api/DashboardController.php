@@ -8,6 +8,7 @@ use App\Models\Document;
 use App\Models\Folder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class DashboardController extends Controller
 {
@@ -49,6 +50,7 @@ class DashboardController extends Controller
             ? ActivityLog::query()
                 ->with('user:id,full_name,avatar')
                 ->latest()
+                ->limit(10)
                 ->get()
                 ->map(fn (ActivityLog $activity) => $this->formatActivity($activity))
             : collect();
@@ -66,6 +68,92 @@ class DashboardController extends Controller
             'popular_documents' => $this->popularDocuments(),
             'activities' => $activities,
         ]);
+    }
+
+    public function activities(Request $request): JsonResponse
+    {
+        abort_unless($request->user()->role === 'admin', 403);
+
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:255'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $query = ActivityLog::query()
+            ->with('user:id,full_name,avatar')
+            ->latest();
+
+        $search = trim($validated['search'] ?? '');
+        if ($search !== '') {
+            $matchingActions = $this->matchingActions($search);
+
+            $query->where(function ($query) use ($search, $matchingActions): void {
+                $query
+                    ->where('action', 'like', '%' . $search . '%')
+                    ->orWhere('metadata', 'like', '%' . $search . '%')
+                    ->orWhereHas('user', function ($userQuery) use ($search): void {
+                        $userQuery
+                            ->where('full_name', 'like', '%' . $search . '%')
+                            ->orWhere('email', 'like', '%' . $search . '%');
+                    });
+
+                if ($matchingActions !== []) {
+                    $query->orWhereIn('action', $matchingActions);
+                }
+            });
+        }
+
+        if (! empty($validated['date_from'])) {
+            $query->whereDate('created_at', '>=', $validated['date_from']);
+        }
+
+        if (! empty($validated['date_to'])) {
+            $query->whereDate('created_at', '<=', $validated['date_to']);
+        }
+
+        $activities = $query->paginate(20);
+
+        return response()->json([
+            'data' => collect($activities->items())
+                ->map(fn (ActivityLog $activity) => $this->formatActivity($activity))
+                ->values(),
+            'pagination' => [
+                'current_page' => $activities->currentPage(),
+                'last_page' => $activities->lastPage(),
+                'per_page' => $activities->perPage(),
+                'total' => $activities->total(),
+                'from' => $activities->firstItem(),
+                'to' => $activities->lastItem(),
+            ],
+        ]);
+    }
+
+    private function matchingActions(string $search): array
+    {
+        $needle = Str::lower($search);
+        $labels = [
+            'login' => 'đăng nhập',
+            'register' => 'đăng ký tài khoản',
+            'guest_login' => 'đăng nhập với tư cách người xem',
+            'logout' => 'đăng xuất',
+            'uploaded' => 'tải lên tài liệu',
+            'downloaded' => 'tải xuống tài liệu',
+            'viewed' => 'truy cập tài liệu',
+            'updated' => 'cập nhật tài liệu',
+            'approved' => 'phê duyệt tài liệu',
+            'rejected' => 'từ chối tài liệu',
+            'favorited' => 'đánh dấu tài liệu',
+            'unfavorited' => 'bỏ đánh dấu tài liệu',
+            'deleted' => 'xóa tài liệu',
+        ];
+
+        return collect($labels)
+            ->filter(fn (string $label, string $action): bool => Str::contains(Str::lower($label), $needle)
+                || Str::contains(Str::lower($action), $needle))
+            ->keys()
+            ->all();
     }
 
     private function formatDocument(Document $document): array

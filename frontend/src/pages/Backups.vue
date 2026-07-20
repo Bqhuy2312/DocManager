@@ -118,9 +118,12 @@ import {
   restoreStoredBackup,
 } from "@/services/backupService";
 import { confirmDialog, notify } from "@/services/notificationService";
+import realtimeRefresh from "@/mixins/realtimeRefresh";
 
 export default {
   name: "Backups",
+  mixins: [realtimeRefresh],
+  realtimeScopes: ["backup"],
   components: { Loading },
   data() {
     return {
@@ -135,6 +138,9 @@ export default {
     await this.loadBackups();
   },
   methods: {
+    refreshRealtimeData() {
+      return this.loadBackups();
+    },
     async loadBackups() {
       this.loading = true;
       this.error = "";

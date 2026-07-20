@@ -30,15 +30,24 @@
               </div>
 
               <div v-if="previewVisible" class="preview-surface">
-                <img v-if="previewType === 'image'" :src="document.file_path" :alt="document.title" class="preview-image">
+                <div v-if="previewLoading" class="preview-empty">
+                  <i class="fas fa-spinner fa-spin"></i>
+                  <span>Đang tải bản xem trước...</span>
+                </div>
+                <div v-else-if="previewError" class="preview-empty">
+                  <i class="fas fa-triangle-exclamation"></i>
+                  <strong>Không thể tải bản xem trước</strong>
+                  <span>{{ previewError }}</span>
+                </div>
+                <img v-else-if="previewType === 'image'" :src="previewSource" :alt="document.title" class="preview-image">
                 <iframe
                   v-else-if="previewType === 'pdf' || previewType === 'office' || previewType === 'text'"
                   :src="previewSource"
                   class="preview-frame"
                   title="Xem trước tài liệu"
                 ></iframe>
-                <video v-else-if="previewType === 'video'" :src="document.file_path" class="preview-media" controls></video>
-                <audio v-else-if="previewType === 'audio'" :src="document.file_path" class="preview-audio" controls></audio>
+                <video v-else-if="previewType === 'video'" :src="previewSource" class="preview-media" controls></video>
+                <audio v-else-if="previewType === 'audio'" :src="previewSource" class="preview-audio" controls></audio>
                 <div v-else class="preview-empty">
                   <i class="fas fa-file-circle-question"></i>
                   <strong>Không hỗ trợ xem trước loại tài liệu này</strong>
@@ -172,10 +181,10 @@
           </div>
         </div>
 
-        <div v-if="isAdmin" class="card">
+        <div v-if="canDeleteDocument" class="card">
           <div class="card-header"><strong>Quản trị tài liệu</strong></div>
           <div class="card-body d-grid gap-2">
-            <template v-if="document.status === 'pending'">
+            <template v-if="isAdmin && document.status === 'pending'">
               <button class="btn btn-primary" @click="setApproval('approved')">Phê duyệt</button>
               <button class="btn btn-outline-secondary" @click="setApproval('rejected')">Từ chối</button>
             </template>
@@ -195,12 +204,16 @@ import {
   downloadDocumentFile,
   getDocument,
   getDocumentMetadata,
+  getDocumentPreview,
   updateDocumentFile,
 } from "@/services/documentService";
 import { confirmDialog, notify } from "@/services/notificationService";
+import realtimeRefresh from "@/mixins/realtimeRefresh";
 
 export default {
   name: "DocumentDetail",
+  mixins: [realtimeRefresh],
+  realtimeScopes: ["document", "folder"],
   components: { Loading },
   data() {
     return {
@@ -208,6 +221,9 @@ export default {
       loading: false,
       error: "",
       previewVisible: true,
+      previewUrl: "",
+      previewLoading: false,
+      previewError: "",
       updateFormVisible: false,
       updating: false,
       folderOptions: [],
@@ -236,6 +252,10 @@ export default {
       return this.isAdmin
         || (this.currentUser?.role === "editor" && this.document?.created_by === this.currentUser?.id);
     },
+    canDeleteDocument() {
+      return this.isAdmin
+        || (this.currentUser?.role === "editor" && String(this.document?.created_by) === String(this.currentUser?.id));
+    },
     fileExtension() {
       const name = this.document?.file_name || "";
       return name.includes(".") ? name.split(".").pop().toLowerCase() : "";
@@ -263,7 +283,7 @@ export default {
         return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(this.document.file_path)}`;
       }
 
-      return this.document.file_path;
+      return this.previewUrl;
     },
     parentFolderOptions() {
       const parents = new Map();
@@ -281,7 +301,16 @@ export default {
   async mounted() {
     await this.loadDocument();
   },
+  beforeUnmount() {
+    this.clearPreviewUrl();
+  },
   methods: {
+    refreshRealtimeData(payload = {}) {
+      if (payload.scope === "document" && payload.entity_id && payload.entity_id !== this.$route.params.id) {
+        return Promise.resolve();
+      }
+      return this.loadDocument();
+    },
     goBack() {
       if (window.history.length > 1) {
         this.$router.back();
@@ -312,10 +341,33 @@ export default {
         this.document = document;
         this.folderOptions = metadata.folders || [];
         this.fillUpdateForm();
+        await this.loadPreview();
       } catch (error) {
         this.error = error.response?.data?.message || "Không thể tải chi tiết tài liệu.";
       } finally {
         this.loading = false;
+      }
+    },
+    clearPreviewUrl() {
+      if (this.previewUrl) {
+        URL.revokeObjectURL(this.previewUrl);
+        this.previewUrl = "";
+      }
+    },
+    async loadPreview() {
+      this.clearPreviewUrl();
+      this.previewError = "";
+
+      if (!this.document || ["office", "unsupported"].includes(this.previewType)) return;
+
+      this.previewLoading = true;
+      try {
+        const blob = await getDocumentPreview(this.document.id);
+        this.previewUrl = URL.createObjectURL(blob);
+      } catch (error) {
+        this.previewError = error.response?.data?.message || "Không thể tải bản xem trước tài liệu.";
+      } finally {
+        this.previewLoading = false;
       }
     },
     handleUpdateFile(event) {
@@ -338,6 +390,7 @@ export default {
       try {
         this.document = await updateDocumentFile(this.document.id, formData);
         this.fillUpdateForm();
+        await this.loadPreview();
         this.updateFormVisible = false;
         notify({
           title: "Đã cập nhật tài liệu",
@@ -543,4 +596,3 @@ export default {
   }
 }
 </style>
-

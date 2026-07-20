@@ -1461,3 +1461,360 @@ body.theme-dark .document-card-categories .badge.bg-success {
     font-size: 1.55rem !important;
   }
 }
+
+/* Complete dark-mode coverage for scoped page controls and secondary surfaces. */
+body.theme-dark .login-page {
+  background: #18181b !important;
+  color: #f4f4f5 !important;
+}
+
+body.theme-dark .backup-info > div,
+body.theme-dark .backup-panel,
+body.theme-dark .backup-table,
+body.theme-dark .department-modal,
+body.theme-dark .member-modal,
+body.theme-dark .category-more-panel,
+body.theme-dark .upload-category-panel,
+body.theme-dark .login-card,
+body.theme-dark .auth-mode-switch {
+  border-color: #3f3f46 !important;
+  background: #242428 !important;
+  color: #f4f4f5 !important;
+  box-shadow: none !important;
+}
+
+body.theme-dark .backup-table th,
+body.theme-dark .backup-table td {
+  border-color: #3f3f46 !important;
+}
+
+body.theme-dark .backup-header p,
+body.theme-dark .backup-info span,
+body.theme-dark .backup-table th,
+body.theme-dark .backup-table small,
+body.theme-dark .departments-header p,
+body.theme-dark .members-header p,
+body.theme-dark .member-email,
+body.theme-dark .member-meta,
+body.theme-dark .eyebrow,
+body.theme-dark .favorite-document-meta,
+body.theme-dark .dashboard-document-meta,
+body.theme-dark .pagination-summary,
+body.theme-dark .document-results-bar,
+body.theme-dark .login-hero p,
+body.theme-dark .login-card-heading p,
+body.theme-dark .login-field small,
+body.theme-dark .login-divider,
+body.theme-dark .confirm-copy p,
+body.theme-dark .notification-header-actions button {
+  color: #a1a1aa !important;
+}
+
+body.theme-dark .backup-panel-head,
+body.theme-dark .category-more-header,
+body.theme-dark .upload-category-panel-header,
+body.theme-dark .login-card-heading {
+  border-color: #3f3f46 !important;
+  background: #242428 !important;
+}
+
+body.theme-dark .member-card-actions,
+body.theme-dark .department-card .card-footer {
+  border-color: #3f3f46 !important;
+  background: #2f2f35 !important;
+}
+
+body.theme-dark .category-more-item,
+body.theme-dark .category-more-header button,
+body.theme-dark .upload-category-tab,
+body.theme-dark .upload-category-panel-item,
+body.theme-dark .upload-category-panel-header button,
+body.theme-dark .mine-filter-btn,
+body.theme-dark .tree-add-root,
+body.theme-dark .icon-button,
+body.theme-dark .pagination-actions button,
+body.theme-dark .clear-filter-button,
+body.theme-dark .login-secondary,
+body.theme-dark .guest-login-button {
+  border-color: #52525b !important;
+  background: #2a2a2f !important;
+  color: #f4f4f5 !important;
+}
+
+body.theme-dark .category-more-item:hover,
+body.theme-dark .category-more-header button:hover,
+body.theme-dark .upload-category-tab:hover,
+body.theme-dark .upload-category-panel-item:hover,
+body.theme-dark .upload-category-panel-header button:hover,
+body.theme-dark .mine-filter-btn:hover,
+body.theme-dark .tree-add-root:hover,
+body.theme-dark .tree-add-root:focus,
+body.theme-dark .icon-button:hover,
+body.theme-dark .pagination-actions button:hover:not(:disabled),
+body.theme-dark .clear-filter-button:hover,
+body.theme-dark .login-secondary:hover,
+body.theme-dark .guest-login-button:hover {
+  border-color: #71717a !important;
+  background: #3a3a40 !important;
+  color: #ffffff !important;
+}
+
+body.theme-dark .category-more-item.active,
+body.theme-dark .upload-category-tab.active,
+body.theme-dark .upload-category-panel-item.active,
+body.theme-dark .mine-filter-btn.active,
+body.theme-dark .pagination-actions button.active {
+  border-color: #f4f4f5 !important;
+  background: #f4f4f5 !important;
+  color: #18181b !important;
+}
+
+body.theme-dark .category-more-item.active *,
+body.theme-dark .upload-category-tab.active *,
+body.theme-dark .upload-category-panel-item.active *,
+body.theme-dark .mine-filter-btn.active *,
+body.theme-dark .pagination-actions button.active * {
+  color: #18181b !important;
+}
+
+body.theme-dark .upload-category-icon {
+  background: #3a3a40 !important;
+  color: #e4e4e7 !important;
+}
+
+body.theme-dark .upload-category-tab.active .upload-category-icon,
+body.theme-dark .upload-category-panel-item.active .upload-category-icon {
+  background: #dedee2 !important;
+  color: #18181b !important;
+}
+
+body.theme-dark .document-status-badge-2 {
+  border-color: #52525b !important;
+  background: #34343a !important;
+  color: #d4d4d8 !important;
+}
+
+body.theme-dark .status-pill {
+  background: #3f3f46 !important;
+  color: #d4d4d8 !important;
+}
+
+body.theme-dark .status-pill.success {
+  background: #143322 !important;
+  color: #86efac !important;
+}
+
+body.theme-dark .status-pill.running,
+body.theme-dark .status-pill.pending {
+  background: #422f0b !important;
+  color: #fde68a !important;
+}
+
+body.theme-dark .status-pill.failed,
+body.theme-dark .status-pill.error {
+  background: #3b1d1d !important;
+  color: #fca5a5 !important;
+}
+
+body.theme-dark .error-text {
+  color: #fca5a5 !important;
+}
+
+body.theme-dark .preview-frame,
+body.theme-dark .document-preview-frame,
+body.theme-dark .version-list {
+  border-color: #3f3f46 !important;
+  background: #1f1f23 !important;
+  color: #f4f4f5 !important;
+}
+
+body.theme-dark .modal-backdrop-panel,
+body.theme-dark .activity-modal-backdrop {
+  background: rgba(0, 0, 0, 0.68) !important;
+}
+
+body.theme-dark .btn-close {
+  filter: invert(1) grayscale(100%) brightness(180%);
+}
+
+body.theme-dark .form-check-input {
+  border-color: #71717a !important;
+  background-color: #2a2a2f !important;
+}
+
+body.theme-dark .form-check-input:checked {
+  border-color: #2563eb !important;
+  background-color: #2563eb !important;
+}
+
+body.theme-dark input[type="file"]::file-selector-button {
+  border-color: #52525b !important;
+  background: #34343a !important;
+  color: #f4f4f5 !important;
+}
+
+body.theme-dark option {
+  background: #242428;
+  color: #f4f4f5;
+}
+
+body.theme-dark .login-icon,
+body.theme-dark .login-submit {
+  border-color: #f4f4f5 !important;
+  background: #f4f4f5 !important;
+  color: #18181b !important;
+}
+
+body.theme-dark .auth-mode-switch button {
+  background: transparent !important;
+  color: #a1a1aa !important;
+}
+
+body.theme-dark .auth-mode-switch button:hover {
+  background: #34343a !important;
+  color: #f4f4f5 !important;
+}
+
+body.theme-dark .auth-mode-switch button.active {
+  background: #f4f4f5 !important;
+  color: #18181b !important;
+}
+
+body.theme-dark .section-heading a,
+body.theme-dark .section-action,
+body.theme-dark .activity-content a {
+  color: #f4f4f5 !important;
+}
+
+body.theme-dark .activity-content p {
+  color: #d4d4d8 !important;
+}
+
+body.theme-dark .login-divider::before,
+body.theme-dark .login-divider::after {
+  background: #3f3f46 !important;
+}
+
+body.theme-dark .login-alert {
+  border-color: #7f1d1d !important;
+  background: #3b1d1d !important;
+  color: #fecaca !important;
+}
+
+body.theme-dark .two-factor-dot {
+  border-color: #d4d4d8 !important;
+  background: #242428 !important;
+}
+
+body.theme-dark .two-factor-dot.filled,
+body.theme-dark .two-factor-dot.is-filled {
+  border-color: #f4f4f5 !important;
+  background: #f4f4f5 !important;
+}
+
+/* Dashboard and member-detail surfaces rendered from scoped page styles. */
+body.theme-dark .popular-documents-section,
+body.theme-dark .access-rank-item,
+body.theme-dark .member-profile,
+body.theme-dark .edit-panel,
+body.theme-dark .document-toolbar,
+body.theme-dark .document-summary span,
+body.theme-dark .role-note,
+body.theme-dark .document-empty,
+body.theme-dark .activity-modal {
+  border-color: #3f3f46 !important;
+  background: #242428 !important;
+  color: #f4f4f5 !important;
+  box-shadow: none !important;
+}
+
+body.theme-dark .access-rank-item:hover,
+body.theme-dark .access-rank-item:focus-within {
+  border-color: #71717a !important;
+  background: #2f2f35 !important;
+}
+
+body.theme-dark .rank-number,
+body.theme-dark .profile-stat-icon,
+body.theme-dark .panel-heading-icon,
+body.theme-dark .role-note-icon,
+body.theme-dark .document-empty > span {
+  background: #34343a !important;
+  color: #f4f4f5 !important;
+}
+
+body.theme-dark .rank-progress {
+  background: #3f3f46 !important;
+}
+
+body.theme-dark .rank-main h3,
+body.theme-dark .rank-number,
+body.theme-dark .profile-identity h2,
+body.theme-dark .panel-heading h2,
+body.theme-dark .document-section-heading h2,
+body.theme-dark .role-note strong,
+body.theme-dark .profile-stat strong,
+body.theme-dark .document-summary strong {
+  color: #f4f4f5 !important;
+}
+
+body.theme-dark .rank-main p,
+body.theme-dark .rank-meta,
+body.theme-dark .profile-identity p,
+body.theme-dark .panel-heading p,
+body.theme-dark .document-section-heading p,
+body.theme-dark .role-note small,
+body.theme-dark .profile-stat small,
+body.theme-dark .document-summary span {
+  color: #a1a1aa !important;
+}
+
+body.theme-dark .panel-heading,
+body.theme-dark .actions,
+body.theme-dark .profile-stats,
+body.theme-dark .document-section,
+body.theme-dark .activity-modal-header,
+body.theme-dark .activity-modal-filters {
+  border-color: #3f3f46 !important;
+}
+
+body.theme-dark .activity-modal-empty,
+body.theme-dark .activity-modal-loading {
+  color: #a1a1aa !important;
+}
+
+body.theme-dark .activity-modal-close,
+body.theme-dark .activity-modal-filters input,
+body.theme-dark .activity-filter-reset {
+  border-color: #52525b !important;
+  background: #2a2a2f !important;
+  color: #f4f4f5 !important;
+}
+
+body.theme-dark .activity-modal-close:hover,
+body.theme-dark .activity-filter-reset:hover {
+  border-color: #71717a !important;
+  background: #3a3a40 !important;
+}
+
+body.theme-dark .skeleton-card,
+body.theme-dark .skeleton-panel,
+body.theme-dark .skeleton-stat,
+body.theme-dark .skeleton-list-row {
+  border-color: #3f3f46 !important;
+  background: #242428 !important;
+}
+
+body.theme-dark .skeleton-card-footer,
+body.theme-dark .skeleton-folders aside,
+body.theme-dark .skeleton-setting-tab {
+  border-color: #3f3f46 !important;
+  background: #2f2f35 !important;
+}
+
+body.theme-dark .skeleton-line,
+body.theme-dark .skeleton-circle,
+body.theme-dark .skeleton-block {
+  background: linear-gradient(90deg, #34343a 25%, #45454d 50%, #34343a 75%) !important;
+  background-size: 200% 100% !important;
+}

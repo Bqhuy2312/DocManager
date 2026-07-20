@@ -56,32 +56,41 @@
           </div>
         </div>
 
-        <div class="user-summary">
-          <strong>{{ currentUser?.full_name || "Tài khoản" }}</strong>
-          <small>{{ roleLabel }}</small>
-        </div>
-
-        <div class="dropdown">
+        <div class="dropdown account-dropdown">
           <button
-            class="avatar-button"
+            class="account-trigger"
             type="button"
             data-bs-toggle="dropdown"
             aria-expanded="false"
             aria-label="Mở menu tài khoản"
           >
-            <img v-if="currentUser?.avatar" :src="currentUser.avatar" alt="Avatar" class="avatar-image">
-            <i v-else class="fas fa-user"></i>
+            <span class="user-summary">
+              <strong>{{ currentUser?.full_name || "Tài khoản" }}</strong>
+              <small>{{ roleLabel }}</small>
+            </span>
+            <span class="avatar-button">
+              <img v-if="currentUser?.avatar" :src="currentUser.avatar" alt="Avatar" class="avatar-image">
+              <i v-else class="fas fa-user"></i>
+            </span>
+            <i class="fas fa-chevron-down account-chevron" aria-hidden="true"></i>
           </button>
-          <ul class="dropdown-menu dropdown-menu-end">
+          <ul class="dropdown-menu dropdown-menu-end account-menu">
             <li>
-              <router-link to="/settings" class="dropdown-item">
-                <i class="fas fa-cog me-2"></i>Cài đặt
+              <router-link to="/settings" class="dropdown-item account-menu-item">
+                <span class="account-menu-icon"><i class="fas fa-cog"></i></span>
+                <span class="account-menu-copy">
+                  <strong>Cài đặt</strong>
+                  <small>Tùy chỉnh tài khoản</small>
+                </span>
               </router-link>
             </li>
-            <li><hr class="dropdown-divider"></li>
             <li>
-              <button class="dropdown-item logout-item" type="button" @click="logout">
-                <i class="fas fa-door-open me-2"></i>Đăng xuất
+              <button class="dropdown-item account-menu-item logout-item" type="button" @click="logout">
+                <span class="account-menu-icon"><i class="fas fa-door-open"></i></span>
+                <span class="account-menu-copy">
+                  <strong>Đăng xuất</strong>
+                  <small>Kết thúc phiên làm việc</small>
+                </span>
               </button>
             </li>
           </ul>
@@ -405,28 +414,63 @@ export default {
   text-align: right;
 }
 
+.user-summary strong {
+  max-width: 160px;
+  overflow: hidden;
+  font-size: 0.86rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .user-summary small {
   margin-top: 2px;
   color: #707070;
   font-size: 0.72rem;
 }
 
+.account-trigger {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 7px 4px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #171717;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.account-trigger:hover,
+.account-trigger:focus,
+.account-trigger[aria-expanded="true"] {
+  border-color: #e5e5e2;
+  background: #f5f5f3;
+}
+
+.account-chevron {
+  color: #8a8a84;
+  font-size: 0.64rem;
+  transition: transform 0.2s ease;
+}
+
+.account-trigger[aria-expanded="true"] .account-chevron {
+  transform: rotate(180deg);
+}
+
 .avatar-button {
   display: flex;
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
   align-items: center;
   justify-content: center;
-  border: 1px solid #171717;
+  overflow: hidden;
+  border: 2px solid #fff;
   border-radius: 50%;
   background: #171717;
   color: #fff;
-  transition: background-color 0.2s ease;
-}
-
-.avatar-button:hover,
-.avatar-button:focus {
-  background: #3a3a3a;
+  box-shadow: 0 0 0 1px #d7d7d3;
 }
 
 .avatar-image {
@@ -442,6 +486,54 @@ export default {
   border-color: #dededb;
   border-radius: 8px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.account-menu {
+  width: 245px;
+  padding: 6px;
+}
+
+.account-menu li + li {
+  margin-top: 3px;
+}
+
+.account-menu .account-menu-item {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+}
+
+.account-menu-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 6px;
+  background: #ededeb;
+  color: #292929;
+}
+
+.account-menu-copy {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.account-menu-copy strong {
+  font-size: 0.86rem;
+}
+
+.account-menu-copy small {
+  margin-top: 2px;
+  color: #797973;
+  font-size: 0.72rem;
 }
 
 .notification-menu {
@@ -550,10 +642,48 @@ export default {
   color: #dc2626;
 }
 
+.logout-item .account-menu-icon {
+  background: #fff0f0;
+  color: #dc2626;
+}
+
+.logout-item .account-menu-copy small {
+  color: #a86b6b;
+}
+
 .logout-item:hover,
 .logout-item:focus {
-  background: #fee2e2;
+  background: #fff1f1;
   color: #b91c1c;
+}
+
+:global(body.theme-dark) .account-trigger {
+  color: #f4f4f5;
+}
+
+:global(body.theme-dark) .account-trigger:hover,
+:global(body.theme-dark) .account-trigger:focus,
+:global(body.theme-dark) .account-trigger[aria-expanded="true"] {
+  border-color: #3f3f46;
+  background: #2b2b30;
+}
+
+:global(body.theme-dark) .account-menu-icon {
+  background: #34343a;
+  color: #f4f4f5;
+}
+
+:global(body.theme-dark) .account-menu-copy small {
+  color: #a1a1aa;
+}
+
+:global(body.theme-dark) .logout-item .account-menu-icon {
+  background: #3a2528;
+  color: #f87171;
+}
+
+:global(body.theme-dark) .logout-item .account-menu-copy small {
+  color: #d49a9a;
 }
 
 @media (max-width: 850px) {
@@ -564,6 +694,10 @@ export default {
 
   .user-summary {
     display: none;
+  }
+
+  .account-trigger {
+    padding-left: 7px;
   }
 }
 
@@ -577,4 +711,3 @@ export default {
   }
 }
 </style>
-

@@ -42,6 +42,10 @@ export default {
       type: Number,
       required: true,
     },
+    scrollOnChange: {
+      type: Boolean,
+      default: true,
+    },
   },
   emits: ["update:page"],
   computed: {
@@ -70,7 +74,9 @@ export default {
     changePage(page) {
       if (page < 1 || page > this.totalPages || page === this.page) return;
       this.$emit("update:page", page);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      if (this.scrollOnChange) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     },
   },
 };

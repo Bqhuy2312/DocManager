@@ -133,7 +133,7 @@
           v-else-if="activities.length"
           type="button"
           class="section-action"
-          @click="showActivityModal = true"
+          @click="openActivityModal"
         >
           Xem tất cả
           <i class="fas fa-arrow-right ms-1"></i>
@@ -188,24 +188,79 @@
       </template>
     </section>
 
-    <div v-if="showActivityModal" class="activity-modal-backdrop" @click.self="showActivityModal = false">
+    <div v-if="showActivityModal" class="activity-modal-backdrop" @click.self="closeActivityModal">
       <div class="activity-modal" role="dialog" aria-modal="true" aria-labelledby="activity-modal-title">
         <div class="activity-modal-header">
           <div>
             <h2 id="activity-modal-title">Tất cả hoạt động</h2>
-            <p>{{ activities.length }} logs gần nhất trong hệ thống</p>
+            <p>{{ activityPagination.total }} log trong hệ thống</p>
           </div>
 
-          <button type="button" class="activity-modal-close" aria-label="Đóng" @click="showActivityModal = false">
+          <button type="button" class="activity-modal-close" aria-label="Đóng" @click="closeActivityModal">
             <i class="fas fa-times"></i>
           </button>
         </div>
 
-        <div class="activity-modal-body">
-          <p v-if="!activities.length" class="text-muted">Chưa có hoạt động gần đây.</p>
+        <div ref="activityModalBody" class="activity-modal-body">
+          <div class="activity-modal-filters">
+            <label class="activity-search-field">
+              <span>Từ khóa</span>
+              <div>
+                <i class="fas fa-search"></i>
+                <input
+                  v-model="activitySearch"
+                  type="search"
+                  placeholder="Tên, email, tài liệu hoặc hành động..."
+                  @input="scheduleActivitySearch"
+                >
+              </div>
+            </label>
+
+            <label>
+              <span>Từ ngày</span>
+              <input
+                v-model="activityDateFrom"
+                type="date"
+                :max="activityDateTo || undefined"
+                @change="applyActivityFilters"
+              >
+            </label>
+
+            <label>
+              <span>Đến ngày</span>
+              <input
+                v-model="activityDateTo"
+                type="date"
+                :min="activityDateFrom || undefined"
+                @change="applyActivityFilters"
+              >
+            </label>
+
+            <button
+              type="button"
+              class="activity-filter-reset"
+              :disabled="!activitySearch && !activityDateFrom && !activityDateTo"
+              title="Xóa bộ lọc"
+              @click="resetActivityFilters"
+            >
+              <i class="fas fa-filter-circle-xmark"></i>
+              Xóa lọc
+            </button>
+          </div>
+
+          <div v-if="activityModalLoading" class="activity-modal-loading">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>Đang tải lịch sử hoạt động...</span>
+          </div>
+
+          <p v-else-if="activityModalError" class="alert alert-danger">{{ activityModalError }}</p>
+
+          <p v-else-if="!activityModalLogs.length" class="activity-modal-empty">
+            Không tìm thấy hoạt động phù hợp với bộ lọc.
+          </p>
 
           <div v-else class="activity-list">
-            <article v-for="activity in activities" :key="`modal-${activity.id}`" class="activity-item">
+            <article v-for="activity in activityModalLogs" :key="`modal-${activity.id}`" class="activity-item">
               <div class="activity-avatar">
                 <img v-if="activity.user_avatar" :src="activity.user_avatar" alt="Avatar">
                 <span v-else>{{ initials(activity.user_name) }}</span>
@@ -218,7 +273,7 @@
                   <router-link
                     v-if="activity.document_id && activity.action !== 'deleted'"
                     :to="`/documents/${activity.document_id}`"
-                    @click="showActivityModal = false"
+                    @click="closeActivityModal"
                   >
                     {{ activity.document_title || activity.target_label }}
                   </router-link>
@@ -228,6 +283,15 @@
               </div>
             </article>
           </div>
+
+          <PaginationControls
+            v-if="!activityModalLoading && !activityModalError"
+            :page="activityPage"
+            :per-page="activityPagination.per_page"
+            :total="activityPagination.total"
+            :scroll-on-change="false"
+            @update:page="changeActivityPage"
+          />
         </div>
       </div>
     </div>
@@ -237,13 +301,17 @@
 <script>
 import Loading from "@/components/common/Loading.vue";
 import DocumentCard from "@/components/common/DocumentCard.vue";
-import { getDashboard } from "@/services/dashboardService";
+import PaginationControls from "@/components/common/PaginationControls.vue";
+import { getDashboard, getDashboardActivities } from "@/services/dashboardService";
 import { downloadDocumentFile, toggleFavoriteDocument } from "@/services/documentService";
 import { subscribeRealtimeActivity } from "@/services/realtimeService";
+import realtimeRefresh from "@/mixins/realtimeRefresh";
 
 export default {
   name: "Dashboard",
-  components: { Loading, DocumentCard },
+  mixins: [realtimeRefresh],
+  realtimeScopes: ["document", "folder", "member", "department", "backup"],
+  components: { Loading, DocumentCard, PaginationControls },
   data() {
     return {
       activeTab: "recent",
@@ -259,6 +327,21 @@ export default {
       popularDocuments: [],
       activities: [],
       showActivityModal: false,
+      activityModalLogs: [],
+      activityModalLoading: false,
+      activityModalError: "",
+      activitySearch: "",
+      activityDateFrom: "",
+      activityDateTo: "",
+      activityPage: 1,
+      activityPagination: {
+        current_page: 1,
+        last_page: 1,
+        per_page: 20,
+        total: 0,
+      },
+      activitySearchTimer: null,
+      activityRealtimeTimer: null,
       unsubscribeActivity: null,
       loading: false,
       error: "",
@@ -312,8 +395,13 @@ export default {
   },
   beforeUnmount() {
     this.unsubscribeActivity?.();
+    window.clearTimeout(this.activitySearchTimer);
+    window.clearTimeout(this.activityRealtimeTimer);
   },
   methods: {
+    refreshRealtimeData() {
+      return this.loadDashboard();
+    },
     async loadDashboard() {
       this.loading = true;
       this.error = "";
@@ -333,6 +421,62 @@ export default {
     },
     viewDocument(id) {
       this.$router.push(`/documents/${id}`);
+    },
+    openActivityModal() {
+      this.showActivityModal = true;
+      this.activityPage = 1;
+      this.loadActivityLogs(1);
+    },
+    closeActivityModal() {
+      this.showActivityModal = false;
+      window.clearTimeout(this.activitySearchTimer);
+      window.clearTimeout(this.activityRealtimeTimer);
+    },
+    async loadActivityLogs(page = this.activityPage) {
+      if (!this.isAdmin) return;
+
+      this.activityModalLoading = true;
+      this.activityModalError = "";
+
+      try {
+        const data = await getDashboardActivities({
+          page,
+          search: this.activitySearch.trim() || undefined,
+          date_from: this.activityDateFrom || undefined,
+          date_to: this.activityDateTo || undefined,
+        });
+        this.activityModalLogs = data.data || [];
+        this.activityPagination = { ...this.activityPagination, ...(data.pagination || {}) };
+        this.activityPage = this.activityPagination.current_page || page;
+      } catch (error) {
+        this.activityModalError = error.response?.data?.message || "Không thể tải lịch sử hoạt động.";
+      } finally {
+        this.activityModalLoading = false;
+      }
+    },
+    scheduleActivitySearch() {
+      window.clearTimeout(this.activitySearchTimer);
+      this.activitySearchTimer = window.setTimeout(() => {
+        this.activityPage = 1;
+        this.loadActivityLogs(1);
+      }, 350);
+    },
+    applyActivityFilters() {
+      window.clearTimeout(this.activitySearchTimer);
+      this.activityPage = 1;
+      this.loadActivityLogs(1);
+    },
+    resetActivityFilters() {
+      this.activitySearch = "";
+      this.activityDateFrom = "";
+      this.activityDateTo = "";
+      this.applyActivityFilters();
+    },
+    changeActivityPage(page) {
+      this.activityPage = page;
+      this.loadActivityLogs(page).then(() => {
+        this.$refs.activityModalBody?.scrollTo({ top: 0, behavior: "smooth" });
+      });
     },
     async downloadDocument(document) {
       if (document.status !== "approved") return;
@@ -370,7 +514,13 @@ export default {
       if (!activity?.id) return;
 
       this.activities = [activity, ...this.activities]
-        .filter((item, index, items) => items.findIndex((candidate) => candidate.id === item.id) === index);
+        .filter((item, index, items) => items.findIndex((candidate) => candidate.id === item.id) === index)
+        .slice(0, 10);
+
+      if (this.showActivityModal) {
+        window.clearTimeout(this.activityRealtimeTimer);
+        this.activityRealtimeTimer = window.setTimeout(() => this.loadActivityLogs(this.activityPage), 350);
+      }
 
       this.applyRealtimeAccessStat(activity);
     },
@@ -407,6 +557,7 @@ export default {
 
       return {
         login: "đã đăng nhập vào",
+        register: "đã đăng ký tài khoản tại",
         guest_login: "đã đăng nhập với tư cách người xem vào",
         logout: "đã đăng xuất khỏi",
         uploaded: "đã tải lên",
@@ -1006,6 +1157,125 @@ export default {
   padding: 22px;
 }
 
+.activity-modal-filters {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(142px, 0.55fr) minmax(142px, 0.55fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #dededb;
+}
+
+.activity-modal-filters label {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  color: #555;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.activity-modal-filters input {
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 0 11px;
+  border: 1px solid #d6d6d2;
+  border-radius: 6px;
+  background: #fff;
+  color: #171717;
+  outline: none;
+}
+
+.activity-modal-filters input:focus {
+  border-color: #171717;
+  box-shadow: 0 0 0 3px rgba(23, 23, 23, 0.08);
+}
+
+.activity-search-field > div {
+  position: relative;
+}
+
+.activity-search-field i {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  color: #777;
+  transform: translateY(-50%);
+}
+
+.activity-search-field input {
+  padding-left: 36px;
+}
+
+.activity-filter-reset {
+  display: inline-flex;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 13px;
+  border: 1px solid #cfcfcb;
+  border-radius: 6px;
+  background: #fff;
+  color: #292929;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.activity-filter-reset:hover:not(:disabled) {
+  border-color: #171717;
+  background: #f4f4f2;
+}
+
+.activity-filter-reset:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.activity-modal-loading,
+.activity-modal-empty {
+  display: flex;
+  min-height: 180px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #707070;
+  text-align: center;
+}
+
+:global(body.theme-dark) .activity-modal {
+  border-color: #44444a;
+  background: #222226;
+  color: #f4f4f4;
+}
+
+:global(body.theme-dark) .activity-modal-header,
+:global(body.theme-dark) .activity-modal-filters {
+  border-color: #44444a;
+}
+
+:global(body.theme-dark) .activity-modal-header p,
+:global(body.theme-dark) .activity-modal-filters label,
+:global(body.theme-dark) .activity-modal-empty,
+:global(body.theme-dark) .activity-modal-loading {
+  color: #bcbcc2;
+}
+
+:global(body.theme-dark) .activity-modal-close,
+:global(body.theme-dark) .activity-modal-filters input,
+:global(body.theme-dark) .activity-filter-reset {
+  border-color: #4c4c52;
+  background: #2d2d32;
+  color: #f4f4f4;
+}
+
+:global(body.theme-dark) .activity-modal-close:hover,
+:global(body.theme-dark) .activity-filter-reset:hover:not(:disabled) {
+  background: #38383e;
+}
+
 @media (max-width: 850px) {
   .stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1013,6 +1283,14 @@ export default {
 
   .access-insights {
     grid-template-columns: 1fr;
+  }
+
+  .activity-modal-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .activity-search-field {
+    grid-column: 1 / -1;
   }
 }
 
@@ -1024,6 +1302,18 @@ export default {
 
   .stats-grid {
     grid-template-columns: 1fr;
+  }
+
+  .activity-modal-backdrop {
+    padding: 10px;
+  }
+
+  .activity-modal-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .activity-search-field {
+    grid-column: auto;
   }
 }
 </style>

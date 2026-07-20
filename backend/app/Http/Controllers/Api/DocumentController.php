@@ -16,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\Rule;
 use RuntimeException;
 
@@ -31,12 +32,17 @@ class DocumentController extends Controller
         $status = $request->query('status');
         $validStatus = in_array($status, ['approved', 'pending', 'rejected'], true);
         $mineOnly = $request->boolean('mine') && in_array($user->role, ['admin', 'editor'], true);
+        $createdBy = $request->query('created_by');
 
         $query = Document::query()
             ->with(['folder.parent', 'creator.department', 'approver', 'tags'])
             ->withExists([
                 'favoritedBy as is_favorite' => fn ($query) => $query->where('user_id', $user->id),
             ]);
+
+        if ($user->role === 'admin' && is_string($createdBy) && $createdBy !== '') {
+            $query->where('created_by', $createdBy);
+        }
 
         if ($mineOnly) {
             $query->where('created_by', $user->id);
@@ -177,11 +183,41 @@ class DocumentController extends Controller
         return redirect()->away($document->file_path);
     }
 
+    public function preview(Request $request, Document $document)
+    {
+        abort_unless($this->canView($request, $document), 403);
+
+        try {
+            $response = Http::timeout(30)->get($document->file_path);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'message' => 'Không thể kết nối đến dịch vụ lưu trữ để xem trước tài liệu.',
+            ], 502);
+        }
+
+        if ($response->failed()) {
+            return response()->json([
+                'message' => 'Không thể tải file xem trước từ Cloudinary.',
+            ], 502);
+        }
+
+        $safeFileName = preg_replace('/[^A-Za-z0-9._-]/', '_', $document->file_name) ?: 'document';
+
+        return response($response->body(), 200, [
+            'Content-Type' => $document->mime_type ?: ($response->header('Content-Type') ?: 'application/octet-stream'),
+            'Content-Disposition' => 'inline; filename="' . $safeFileName . '"',
+            'Cache-Control' => 'private, max-age=300',
+        ]);
+    }
+
     public function approve(Request $request, Document $document): JsonResponse
     {
         $validated = $request->validate([
             'status' => ['required', Rule::in(['approved', 'rejected'])],
         ]);
+        $previousStatus = $document->status;
 
         $document->update([
             'approved_by' => $request->user()->id,
@@ -190,6 +226,10 @@ class DocumentController extends Controller
 
         $this->logActivity($request, $validated['status'] === 'approved' ? 'approved' : 'rejected', $document);
         $this->notifyCreatorAboutApproval($request, $document, $validated['status']);
+
+        if ($validated['status'] === 'approved' && $previousStatus !== 'approved') {
+            $this->notifyViewersAboutApprovedDocument($document);
+        }
 
         return response()->json($this->format(
             $document->load(['folder.parent', 'creator.department', 'approver', 'tags'])
@@ -323,6 +363,8 @@ class DocumentController extends Controller
 
     public function destroy(Request $request, Document $document): JsonResponse
     {
+        abort_unless($this->canDelete($request, $document), 403);
+
         try {
             $this->cloudinary->destroyDocument($document->cloudinary_public_id);
         } catch (RuntimeException $exception) {
@@ -395,6 +437,12 @@ class DocumentController extends Controller
     }
 
     private function canUpdate(Request $request, Document $document): bool
+    {
+        return $request->user()->role === 'admin'
+            || ($request->user()->role === 'editor' && (string) $document->created_by === (string) $request->user()->id);
+    }
+
+    private function canDelete(Request $request, Document $document): bool
     {
         return $request->user()->role === 'admin'
             || ($request->user()->role === 'editor' && (string) $document->created_by === (string) $request->user()->id);
@@ -492,6 +540,31 @@ class DocumentController extends Controller
             $approved ? 'approved' : 'rejected',
             '/documents/' . $document->id
         );
+    }
+
+    private function notifyViewersAboutApprovedDocument(Document $document): void
+    {
+        User::query()
+            ->where('role', 'viewer')
+            ->where('is_guest', false)
+            ->where('id', '!=', $document->created_by)
+            ->with('settings')
+            ->get()
+            ->each(function (User $viewer) use ($document): void {
+                $settings = $viewer->settings;
+
+                if ($settings && $settings->notify_upload === false) {
+                    return;
+                }
+
+                $this->sendNotification(
+                    $viewer,
+                    'Tài liệu mới đã được phê duyệt',
+                    '"' . $document->title . '" hiện đã có thể xem.',
+                    'approved',
+                    '/documents/' . $document->id
+                );
+            });
     }
 
     private function sendNotification(User $user, string $title, string $message, string $type, ?string $link = null): void

@@ -151,7 +151,9 @@
               <div class="mb-2">
                 <div class="form-check">
                   <input class="form-check-input" type="checkbox" v-model="notifications.newDocument" id="notif1" :disabled="savingNotification">
-                  <label class="form-check-label" for="notif1">Tài liệu mới được tải lên</label>
+                  <label class="form-check-label" for="notif1">
+                    {{ currentUser?.role === 'viewer' ? 'Tài liệu mới được phê duyệt' : 'Tài liệu mới được tải lên' }}
+                  </label>
                 </div>
               </div>
               <div class="mb-2">

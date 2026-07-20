@@ -219,9 +219,12 @@ import {
   updateFolder,
 } from "@/services/documentService";
 import { confirmDialog, notify } from "@/services/notificationService";
+import realtimeRefresh from "@/mixins/realtimeRefresh";
 
 export default {
   name: "Folders",
+  mixins: [realtimeRefresh],
+  realtimeScopes: ["document", "folder"],
   components: { FolderTreeNode, DocumentCard, Loading, PaginationControls },
   data() {
     return {
@@ -284,6 +287,9 @@ export default {
     this.expandAll();
   },
   methods: {
+    refreshRealtimeData() {
+      return this.loadData();
+    },
     async loadData() {
       this.loading = true;
       this.error = "";

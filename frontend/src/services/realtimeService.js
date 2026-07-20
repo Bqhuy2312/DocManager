@@ -4,6 +4,7 @@ const realtimeUrl = import.meta.env.VITE_REALTIME_URL || "http://127.0.0.1:3001"
 
 let socket = null;
 const activityHandlers = new Set();
+const dataHandlers = new Set();
 
 const ensureSocket = () => {
   if (!socket) {
@@ -14,6 +15,15 @@ const ensureSocket = () => {
 
     socket.on("activity:new", (payload) => {
       activityHandlers.forEach((handler) => handler(payload));
+    });
+
+    socket.on("data:changed", (payload) => {
+      dataHandlers.forEach((subscription) => {
+        if (!subscription.scopes.has("*") && !subscription.scopes.has(payload?.scope)) return;
+
+        window.clearTimeout(subscription.timer);
+        subscription.timer = window.setTimeout(() => subscription.handler(payload), subscription.delay);
+      });
     });
   }
 
@@ -67,11 +77,37 @@ export const subscribeRealtimeActivity = (handler) => {
   };
 };
 
+export const subscribeRealtimeData = (scopes, handler, delay = 350) => {
+  if (typeof handler !== "function") return () => {};
+
+  const activeSocket = ensureSocket();
+  const normalizedScopes = Array.isArray(scopes) ? scopes : [scopes];
+  const subscription = {
+    scopes: new Set(normalizedScopes.filter(Boolean)),
+    handler,
+    delay,
+    timer: null,
+  };
+
+  dataHandlers.add(subscription);
+
+  if (!activeSocket.connected) {
+    activeSocket.connect();
+  }
+
+  return () => {
+    window.clearTimeout(subscription.timer);
+    dataHandlers.delete(subscription);
+  };
+};
+
 export const disconnectRealtime = () => {
   if (!socket) return;
   socket.emit("user:leave");
   socket.disconnect();
   activityHandlers.clear();
+  dataHandlers.forEach((subscription) => window.clearTimeout(subscription.timer));
+  dataHandlers.clear();
   socket = null;
 };
 

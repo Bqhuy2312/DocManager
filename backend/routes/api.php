@@ -36,6 +36,7 @@ Route::middleware(['auth:sanctum', 'guest.active'])->group(function () {
     Route::get('/favorites', [DocumentController::class, 'favorites']);
     Route::get('/documents', [DocumentController::class, 'index']);
     Route::get('/documents/{document}', [DocumentController::class, 'show']);
+    Route::get('/documents/{document}/preview', [DocumentController::class, 'preview']);
     Route::get('/documents/{document}/download', [DocumentController::class, 'download']);
     Route::post('/documents/{document}/favorite', [DocumentController::class, 'toggleFavorite']);
     Route::get('/folders', [FolderController::class, 'index']);
@@ -44,12 +45,14 @@ Route::middleware(['auth:sanctum', 'guest.active'])->group(function () {
     Route::middleware('role:admin,editor')->group(function () {
         Route::post('/documents', [DocumentController::class, 'store']);
         Route::post('/documents/{document}/update-file', [DocumentController::class, 'updateFile']);
+        Route::delete('/documents/{document}', [DocumentController::class, 'destroy']);
         Route::post('/folders', [FolderController::class, 'store']);
         Route::patch('/folders/{folder}', [FolderController::class, 'update']);
         Route::delete('/folders/{folder}', [FolderController::class, 'destroy']);
     });
 
     Route::middleware('role:admin')->group(function () {
+        Route::get('/dashboard/activities', [DashboardController::class, 'activities']);
         Route::get('/users', [UserController::class, 'index']);
         Route::post('/users', [UserController::class, 'store']);
         Route::get('/users/{user}', [UserController::class, 'show']);
@@ -66,7 +69,6 @@ Route::middleware(['auth:sanctum', 'guest.active'])->group(function () {
         Route::get('/backups/{backup}/download', [BackupController::class, 'download']);
         Route::delete('/backups/{backup}', [BackupController::class, 'destroy']);
         Route::patch('/documents/{document}/approval', [DocumentController::class, 'approve']);
-        Route::delete('/documents/{document}', [DocumentController::class, 'destroy']);
     });
 
 });

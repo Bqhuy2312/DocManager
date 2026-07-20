@@ -171,6 +171,7 @@ import PaginationControls from "@/components/common/PaginationControls.vue";
 import Loading from "@/components/common/Loading.vue";
 import { createMember, deleteMember, getMembers } from "@/services/memberService";
 import { confirmDialog, notify } from "@/services/notificationService";
+import realtimeRefresh from "@/mixins/realtimeRefresh";
 
 const emptyMemberForm = () => ({
   full_name: "",
@@ -182,6 +183,8 @@ const emptyMemberForm = () => ({
 
 export default {
   name: "Members",
+  mixins: [realtimeRefresh],
+  realtimeScopes: ["member", "department", "document"],
   components: { PaginationControls, Loading },
   data() {
     return {
@@ -259,6 +262,9 @@ export default {
     await this.loadMembers();
   },
   methods: {
+    refreshRealtimeData() {
+      return this.loadMembers();
+    },
     async loadMembers() {
       this.loading = true;
       this.error = "";

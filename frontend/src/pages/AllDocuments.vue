@@ -62,9 +62,12 @@ import PaginationControls from "@/components/common/PaginationControls.vue";
 import DocumentCard from "@/components/common/DocumentCard.vue";
 import Loading from "@/components/common/Loading.vue";
 import { downloadDocumentFile, getDocuments, toggleFavoriteDocument } from "@/services/documentService";
+import realtimeRefresh from "@/mixins/realtimeRefresh";
 
 export default {
   name: "AllDocuments",
+  mixins: [realtimeRefresh],
+  realtimeScopes: ["document"],
   components: { PaginationControls, DocumentCard, Loading },
   data() {
     return {
@@ -129,6 +132,9 @@ export default {
     await this.loadDocuments();
   },
   methods: {
+    refreshRealtimeData() {
+      return this.loadDocuments();
+    },
     async loadDocuments() {
       this.loading = true;
       this.error = "";

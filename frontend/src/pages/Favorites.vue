@@ -35,9 +35,12 @@ import PaginationControls from "@/components/common/PaginationControls.vue";
 import DocumentCard from "@/components/common/DocumentCard.vue";
 import Loading from "@/components/common/Loading.vue";
 import { downloadDocumentFile, getFavoriteDocuments, toggleFavoriteDocument } from "@/services/documentService";
+import realtimeRefresh from "@/mixins/realtimeRefresh";
 
 export default {
   name: "Favorites",
+  mixins: [realtimeRefresh],
+  realtimeScopes: ["document"],
   components: { PaginationControls, DocumentCard, Loading },
   data() {
     return {
@@ -58,6 +61,9 @@ export default {
     await this.loadFavorites();
   },
   methods: {
+    refreshRealtimeData() {
+      return this.loadFavorites();
+    },
     async loadFavorites() {
       this.loading = true;
       this.error = "";

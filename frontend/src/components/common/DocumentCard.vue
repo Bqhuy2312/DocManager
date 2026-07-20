@@ -92,6 +92,9 @@
         >
           <i class="fas fa-download me-1"></i>Tải xuống
         </button>
+        <span
+          v-else-if="document.status === 'pending'"
+          class="document-status-badge-2">Chờ phê duyệt</span>
       </div>
     </div>
   </div>
@@ -183,6 +186,21 @@ export default {
   border: 1px solid #dededb;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.94);
+  color: #171717;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.document-status-badge-2{
+  display: inline-flex;
+  max-width: 100px;
+  align-items: center;
+  overflow: hidden;
+  padding: 4px 8px;
+  border: 1px solid #dededb;
+  border-radius: 999px;
+  background: #f8f8f6;
   color: #171717;
   font-size: 0.72rem;
   font-weight: 700;

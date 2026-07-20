@@ -161,9 +161,12 @@ import PaginationControls from "@/components/common/PaginationControls.vue";
 import DocumentCard from "@/components/common/DocumentCard.vue";
 import Loading from "@/components/common/Loading.vue";
 import { downloadDocumentFile, getDocuments, getFolders, toggleFavoriteDocument } from "@/services/documentService";
+import realtimeRefresh from "@/mixins/realtimeRefresh";
 
 export default {
   name: "Categories",
+  mixins: [realtimeRefresh],
+  realtimeScopes: ["document", "folder"],
   components: { PaginationControls, DocumentCard, Loading },
   data() {
     return {
@@ -214,8 +217,7 @@ export default {
   async mounted() {
     this.loading = true;
     try {
-      [this.parentCategories, this.documents] = await Promise.all([getFolders(), getDocuments()]);
-      this.selectedParent = this.parentCategories[0] || null;
+      await this.refreshRealtimeData();
     } catch (error) {
       this.error = error.response?.data?.message || "Không thể tải danh mục.";
     } finally {
@@ -223,6 +225,17 @@ export default {
     }
   },
   methods: {
+    async refreshRealtimeData() {
+      const selectedParentId = this.selectedParent?.id;
+      const selectedChildId = this.selectedChild?.id;
+      [this.parentCategories, this.documents] = await Promise.all([getFolders(), getDocuments()]);
+      this.selectedParent = this.parentCategories.find((category) => category.id === selectedParentId)
+        || this.parentCategories[0]
+        || null;
+      this.selectedChild = selectedChildId
+        ? this.flattenFolders(this.selectedParent?.descendants || []).find((category) => category.id === selectedChildId) || null
+        : null;
+    },
     selectParent(category) {
       this.selectedParent = category;
       this.selectedChild = null;
