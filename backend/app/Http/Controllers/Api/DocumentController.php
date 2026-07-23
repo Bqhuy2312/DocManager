@@ -263,10 +263,23 @@ class DocumentController extends Controller
             }
         }
 
-        $oldPublicId = $hasNewFile ? $document->cloudinary_public_id : null;
-
         try {
             $document = DB::transaction(function () use ($request, $document, $validated, $upload, $hasNewFile): Document {
+                if ($hasNewFile) {
+                    DocumentVersion::create([
+                        'document_id' => $document->id,
+                        'updated_by' => $request->user()->id,
+                        'version' => $document->version,
+                        'title' => $document->title,
+                        'description' => $document->description,
+                        'file_name' => $document->file_name,
+                        'file_path' => $document->file_path,
+                        'cloudinary_public_id' => $document->cloudinary_public_id,
+                        'file_size' => $document->file_size,
+                        'mime_type' => $document->mime_type,
+                    ]);
+                }
+
                 $updates = [
                     'approved_by' => null,
                     'folder_id' => $validated['folder_id'] ?? $document->folder_id,
@@ -301,21 +314,6 @@ class DocumentController extends Controller
                     $tags->map(fn (string $tag) => ['tag_name' => $tag])->all()
                 );
 
-                if ($hasNewFile) {
-                    DocumentVersion::create([
-                        'document_id' => $document->id,
-                        'updated_by' => $request->user()->id,
-                        'version' => $document->version,
-                        'title' => $document->title,
-                        'description' => $document->description,
-                        'file_name' => $document->file_name,
-                        'file_path' => $document->file_path,
-                        'cloudinary_public_id' => $document->cloudinary_public_id,
-                        'file_size' => $document->file_size,
-                        'mime_type' => $document->mime_type,
-                    ]);
-                }
-
                 return $document->fresh();
             });
         } catch (\Throwable $exception) {
@@ -323,14 +321,6 @@ class DocumentController extends Controller
                 $this->cloudinary->destroyDocument($upload['public_id']);
             }
             throw $exception;
-        }
-
-        if ($oldPublicId) {
-            try {
-                $this->cloudinary->destroyDocument($oldPublicId);
-            } catch (RuntimeException) {
-                // The new version is already active; stale cleanup can be retried later.
-            }
         }
 
         $this->logActivity($request, 'updated', $document);
